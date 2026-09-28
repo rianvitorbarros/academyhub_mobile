@@ -680,7 +680,8 @@ class _LoginpageState extends State<Loginpage> {
               });
             },
             validator: (value) {
-              if ((value ?? '').trim().length != 6) {
+              final credential = (value ?? '').trim();
+              if (!RegExp(r'^\d{6}$').hasMatch(credential)) {
                 return 'O PIN deve ter 6 dígitos.';
               }
               return null;
