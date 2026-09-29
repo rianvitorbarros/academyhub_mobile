@@ -69,6 +69,37 @@ class ActivityCorrectionService {
     throw _buildException(response);
   }
 
+  Future<List<ActivityCorrectionPrintRun>> listPrintRunsForCorrection({
+    required String token,
+    required String classId,
+    required String termId,
+    String? subject,
+  }) async {
+    final query = <String, String>{
+      'classId': classId,
+      'termId': termId,
+      if ((subject ?? '').trim().isNotEmpty) 'subject': subject!.trim(),
+    };
+    final response = await http.get(
+      Uri.parse('$_baseUrl/print-runs').replace(queryParameters: query),
+      headers: _headers(token),
+    );
+
+    if (response.statusCode == 200) {
+      final body = Map<String, dynamic>.from(
+        json.decode(utf8.decode(response.bodyBytes)) as Map,
+      );
+      return (body['items'] as List? ?? const [])
+          .whereType<Map>()
+          .map((item) => ActivityCorrectionPrintRun.fromJson(
+                Map<String, dynamic>.from(item),
+              ))
+          .toList(growable: false);
+    }
+
+    throw _buildException(response);
+  }
+
   Future<ActivityCorrectionRecord> createCorrection({
     required String token,
     required String qrCodePayload,

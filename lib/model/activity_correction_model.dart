@@ -227,3 +227,78 @@ class ActivityCorrectionRecord {
     );
   }
 }
+
+class ActivityCorrectionPrintRunStudent {
+  final String studentId;
+  final String studentName;
+  final String qrCodePayload;
+  final int pageNumber;
+  final String status;
+
+  const ActivityCorrectionPrintRunStudent({
+    required this.studentId,
+    required this.studentName,
+    required this.qrCodePayload,
+    required this.pageNumber,
+    required this.status,
+  });
+
+  factory ActivityCorrectionPrintRunStudent.fromJson(
+      Map<String, dynamic> json) {
+    return ActivityCorrectionPrintRunStudent(
+      studentId: '${json['studentId'] ?? ''}',
+      studentName: '${json['studentName'] ?? ''}',
+      qrCodePayload: '${json['qrCodePayload'] ?? ''}',
+      pageNumber: (json['pageNumber'] as num?)?.toInt() ?? 1,
+      status: '${json['status'] ?? 'pending'}',
+    );
+  }
+
+  bool get isPending => status == 'pending';
+}
+
+class ActivityCorrectionPrintRun {
+  final String id;
+  final String activityPageId;
+  final String bookTitle;
+  final String activityTitle;
+  final String subject;
+  final String? printDate;
+  final int totalStudents;
+  final int pendingCount;
+  final int correctedCount;
+  final List<ActivityCorrectionPrintRunStudent> students;
+
+  const ActivityCorrectionPrintRun({
+    required this.id,
+    required this.activityPageId,
+    required this.bookTitle,
+    required this.activityTitle,
+    required this.subject,
+    required this.printDate,
+    required this.totalStudents,
+    required this.pendingCount,
+    required this.correctedCount,
+    required this.students,
+  });
+
+  factory ActivityCorrectionPrintRun.fromJson(Map<String, dynamic> json) {
+    return ActivityCorrectionPrintRun(
+      id: '${json['id'] ?? ''}',
+      activityPageId: '${json['activityPageId'] ?? ''}',
+      bookTitle: '${json['bookTitle'] ?? ''}',
+      activityTitle: '${json['activityTitle'] ?? ''}',
+      subject: '${json['subject'] ?? ''}',
+      printDate: json['printDate']?.toString(),
+      totalStudents: (json['totalStudents'] as num?)?.toInt() ?? 0,
+      pendingCount: (json['pendingCount'] as num?)?.toInt() ?? 0,
+      correctedCount: (json['correctedCount'] as num?)?.toInt() ?? 0,
+      students: (json['students'] as List? ?? const [])
+          .whereType<Map>()
+          .map((item) => ActivityCorrectionPrintRunStudent.fromJson(
+                Map<String, dynamic>.from(item),
+              ))
+          .toList(growable: false),
+    );
+  }
+}

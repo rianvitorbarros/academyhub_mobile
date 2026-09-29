@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:academyhub_mobile/model/class_model.dart';
+import 'package:academyhub_mobile/model/activity_correction_model.dart';
 import 'package:academyhub_mobile/model/horario_model.dart';
 import 'package:academyhub_mobile/model/report_card_exam_import_model.dart';
 import 'package:academyhub_mobile/model/term_model.dart';
@@ -11,8 +12,10 @@ import 'package:academyhub_mobile/providers/class_provider.dart';
 import 'package:academyhub_mobile/providers/horario_provider.dart';
 import 'package:academyhub_mobile/providers/report_card_provider.dart';
 import 'package:academyhub_mobile/screens/teacher/exam_scanner_screen.dart';
+import 'package:academyhub_mobile/screens/teacher/activity_correction_screen.dart';
 import 'package:academyhub_mobile/screens/teacher/physical_education_grade_screen.dart';
 import 'package:academyhub_mobile/services/exam_service.dart';
+import 'package:academyhub_mobile/services/activity_correction_service.dart';
 import 'package:academyhub_mobile/services/websocket.dart';
 import 'package:academyhub_mobile/widgets/report_card_operation_dialog.dart';
 import 'package:flutter/foundation.dart';
@@ -41,10 +44,12 @@ void _logExamPerfMobile(String tag, Map<String, Object?> data) {
 class _ExamListCacheEntry {
   _ExamListCacheEntry({
     required this.items,
+    required this.activityPrintRuns,
     required this.createdAt,
   });
 
   final List<ImportableExamModel> items;
+  final List<ActivityCorrectionPrintRun> activityPrintRuns;
   final DateTime createdAt;
 }
 
@@ -87,6 +92,9 @@ class _TeacherExamsMobileScreenState extends State<TeacherExamsMobileScreen> {
   List<TermModel> _terms = [];
   List<HorarioModel> _schedules = [];
   List<ImportableExamModel> _exams = [];
+  List<ActivityCorrectionPrintRun> _activityPrintRuns = [];
+  final ActivityCorrectionService _activityCorrectionService =
+      ActivityCorrectionService();
 
   ClassModel? _selectedClass;
   TermModel? _selectedTerm;
@@ -104,7 +112,9 @@ class _TeacherExamsMobileScreenState extends State<TeacherExamsMobileScreen> {
         'screen': 'TeacherExams',
         'durationSinceNavigateMs': widget.navigateStartedAt == null
             ? null
-            : DateTime.now().difference(widget.navigateStartedAt!).inMilliseconds,
+            : DateTime.now()
+                .difference(widget.navigateStartedAt!)
+                .inMilliseconds,
       });
       _bootstrap();
       _listenSocket();
@@ -127,7 +137,8 @@ class _TeacherExamsMobileScreenState extends State<TeacherExamsMobileScreen> {
           : event;
       if (type == 'REPORT_CARD_EXAM_IMPORTED' ||
           type == 'REPORT_CARD_UPDATED' ||
-          type == 'exam:sheet-corrected') {
+          type == 'exam:sheet-corrected' ||
+          type == 'activity:correction-updated') {
         final classId = payload['classId']?.toString();
         final examId = payload['examId']?.toString();
         if (classId == null ||
@@ -251,6 +262,15 @@ class _TeacherExamsMobileScreenState extends State<TeacherExamsMobileScreen> {
     }).toList();
   }
 
+  String? _selectedSubjectName() {
+    final selectedId = _selectedSubjectId;
+    if (selectedId == null) return null;
+    for (final schedule in _subjectsForSelection()) {
+      if (schedule.subjectId == selectedId) return schedule.subject.name;
+    }
+    return null;
+  }
+
   String _examListCacheKey(AuthProvider auth) {
     return [
       auth.user?.schoolId ?? 'no-school',
@@ -311,6 +331,7 @@ class _TeacherExamsMobileScreenState extends State<TeacherExamsMobileScreen> {
         cached != null &&
         now.difference(cached.createdAt).inSeconds < 45) {
       _exams = cached.items;
+      _activityPrintRuns = cached.activityPrintRuns;
       totalStopwatch.stop();
       _logExamPerfMobile('LoadEnd', {
         'requestId': requestId,
@@ -319,6 +340,7 @@ class _TeacherExamsMobileScreenState extends State<TeacherExamsMobileScreen> {
         'httpRequestCount': 0,
         'totalResponseBytes': 0,
         'examCount': _exams.length,
+        'activityPrintRunCount': _activityPrintRuns.length,
         'usedCache': true,
       });
       _logExamPerfMobile('RenderReady', {
@@ -349,13 +371,26 @@ class _TeacherExamsMobileScreenState extends State<TeacherExamsMobileScreen> {
         'page': 1,
         'baseUrl': service.baseUrl,
       });
-      final items = await service.listImportableExams(
-        token: token,
-        classId: classId,
-        termId: _selectedTerm?.id,
-        subjectId: _selectedSubjectId,
-        requestId: requestId,
-      );
+      final selectedSubject = _selectedSubjectName();
+      final results = await Future.wait([
+        service.listImportableExams(
+          token: token,
+          classId: classId,
+          termId: _selectedTerm?.id,
+          subjectId: _selectedSubjectId,
+          requestId: requestId,
+        ),
+        _selectedTerm?.id == null
+            ? Future.value(const <ActivityCorrectionPrintRun>[])
+            : _activityCorrectionService.listPrintRunsForCorrection(
+                token: token,
+                classId: classId,
+                termId: _selectedTerm!.id,
+                subject: selectedSubject,
+              ),
+      ]);
+      final items = results[0] as List<ImportableExamModel>;
+      final activityPrintRuns = results[1] as List<ActivityCorrectionPrintRun>;
       if (requestId != _activeExamListRequestId) {
         _logExamPerfMobile('StaleResponseIgnored', {
           'requestId': requestId,
@@ -365,8 +400,10 @@ class _TeacherExamsMobileScreenState extends State<TeacherExamsMobileScreen> {
         return;
       }
       _exams = items;
+      _activityPrintRuns = activityPrintRuns;
       _examListCache[cacheKey] = _ExamListCacheEntry(
         items: items,
+        activityPrintRuns: activityPrintRuns,
         createdAt: DateTime.now(),
       );
     } catch (e) {
@@ -385,6 +422,7 @@ class _TeacherExamsMobileScreenState extends State<TeacherExamsMobileScreen> {
         'httpRequestCount': service.lastExamListHttpDurationMs > 0 ? 1 : 0,
         'totalResponseBytes': service.lastExamListResponseBytes,
         'examCount': _exams.length,
+        'activityPrintRunCount': _activityPrintRuns.length,
         'usedCache': false,
       });
       _logExamPerfMobile('RenderReady', {
@@ -415,6 +453,19 @@ class _TeacherExamsMobileScreenState extends State<TeacherExamsMobileScreen> {
     }).toList();
   }
 
+  List<ActivityCorrectionPrintRun> get _filteredActivityPrintRuns {
+    final search = _searchController.text.trim().toLowerCase();
+    return _activityPrintRuns.where((run) {
+      return search.isEmpty ||
+          run.bookTitle.toLowerCase().contains(search) ||
+          run.activityTitle.toLowerCase().contains(search) ||
+          run.subject.toLowerCase().contains(search) ||
+          run.students.any(
+            (student) => student.studentName.toLowerCase().contains(search),
+          );
+    }).toList();
+  }
+
   Future<void> _openExam(ImportableExamModel exam) async {
     await Navigator.of(context).push(
       MaterialPageRoute(
@@ -427,6 +478,39 @@ class _TeacherExamsMobileScreenState extends State<TeacherExamsMobileScreen> {
         reason: 'return_from_exam_result',
         forceRefresh: true,
       ));
+    }
+  }
+
+  Future<void> _openActivityCorrection(
+    ActivityCorrectionPrintRunStudent student,
+  ) async {
+    final token = context.read<AuthProvider>().token;
+    if (token == null) return;
+
+    try {
+      final resolved = await _activityCorrectionService.resolveQr(
+        token: token,
+        qrCodePayload: student.qrCodePayload,
+      );
+      if (!mounted) return;
+      final saved = await Navigator.of(context).push<bool>(
+        MaterialPageRoute(
+          builder: (_) => ActivityCorrectionScreen(resolveResult: resolved),
+        ),
+      );
+      if (saved == true && mounted) {
+        await _loadImportableExams(
+          silent: true,
+          reason: 'activity_correction_saved',
+          forceRefresh: true,
+        );
+      }
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+            content: Text(_cleanError(error)), backgroundColor: Colors.red),
+      );
     }
   }
 
@@ -503,17 +587,52 @@ class _TeacherExamsMobileScreenState extends State<TeacherExamsMobileScreen> {
                           child:
                               CircularProgressIndicator(color: p.accentBlue)),
                     )
-                  else if (_filteredExams.isEmpty)
+                  else if (_filteredExams.isEmpty &&
+                      _filteredActivityPrintRuns.isEmpty)
                     _EmptyBox(
                       palette: p,
-                      title: _exams.isEmpty
+                      title: _exams.isEmpty && _activityPrintRuns.isEmpty
                           ? 'Nenhuma prova encontrada'
                           : 'Nenhuma prova com esses filtros',
-                      message: _exams.isEmpty
-                          ? 'Quando houver provas corrigidas para turma, disciplina e bimestre, elas aparecerão aqui.'
+                      message: _exams.isEmpty && _activityPrintRuns.isEmpty
+                          ? 'As avaliações impressas e provas desta turma, disciplina e bimestre aparecerão aqui.'
                           : 'Ajuste os filtros para ver outras provas.',
                     )
-                  else
+                  else ...[
+                    if (_filteredActivityPrintRuns.isNotEmpty) ...[
+                      Text(
+                        'Atividades impressas',
+                        style: GoogleFonts.inter(
+                          fontSize: 16.sp,
+                          fontWeight: FontWeight.w800,
+                          color: p.title,
+                        ),
+                      ),
+                      SizedBox(height: 10.h),
+                      ..._filteredActivityPrintRuns.map(
+                        (run) => Padding(
+                          padding: EdgeInsets.only(bottom: 12.h),
+                          child: _ActivityPrintRunCard(
+                            run: run,
+                            palette: p,
+                            onStudentTap: _openActivityCorrection,
+                          ),
+                        ),
+                      ),
+                    ],
+                    if (_filteredExams.isNotEmpty &&
+                        _filteredActivityPrintRuns.isNotEmpty)
+                      Padding(
+                        padding: EdgeInsets.only(top: 6.h, bottom: 10.h),
+                        child: Text(
+                          'Provas objetivas',
+                          style: GoogleFonts.inter(
+                            fontSize: 16.sp,
+                            fontWeight: FontWeight.w800,
+                            color: p.title,
+                          ),
+                        ),
+                      ),
                     ..._filteredExams.map((exam) => Padding(
                           padding: EdgeInsets.only(bottom: 12.h),
                           child: _ExamImportCard(
@@ -522,6 +641,7 @@ class _TeacherExamsMobileScreenState extends State<TeacherExamsMobileScreen> {
                             onTap: () => _openExam(exam),
                           ),
                         )),
+                  ],
                 ],
               ),
             ),
@@ -1502,6 +1622,143 @@ class _DropdownChip<T> extends StatelessWidget {
               .toList(),
           onChanged: onChanged,
         ),
+      ),
+    );
+  }
+}
+
+class _ActivityPrintRunCard extends StatelessWidget {
+  const _ActivityPrintRunCard({
+    required this.run,
+    required this.palette,
+    required this.onStudentTap,
+  });
+
+  final ActivityCorrectionPrintRun run;
+  final _ExamPalette palette;
+  final ValueChanged<ActivityCorrectionPrintRunStudent> onStudentTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final title =
+        run.bookTitle.isNotEmpty ? run.bookTitle : 'Atividade impressa';
+    final subtitle = [
+      if (run.activityTitle.isNotEmpty) run.activityTitle,
+      if (run.subject.isNotEmpty) run.subject,
+    ].join(' • ');
+
+    return Container(
+      decoration: BoxDecoration(
+        color: palette.surface,
+        borderRadius: BorderRadius.circular(16.r),
+        border: Border.all(color: palette.border),
+      ),
+      child: ExpansionTile(
+        tilePadding: EdgeInsets.fromLTRB(16.w, 10.h, 16.w, 10.h),
+        childrenPadding: EdgeInsets.fromLTRB(16.w, 0, 16.w, 12.h),
+        leading: Container(
+          padding: EdgeInsets.all(9.w),
+          decoration: BoxDecoration(
+            color: palette.accentBlue.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(11.r),
+          ),
+          child: Icon(PhosphorIcons.clipboard_text, color: palette.accentBlue),
+        ),
+        title: Text(
+          title,
+          style: GoogleFonts.inter(
+            fontWeight: FontWeight.w800,
+            fontSize: 14.sp,
+            color: palette.title,
+          ),
+        ),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (subtitle.isNotEmpty) ...[
+              SizedBox(height: 4.h),
+              Text(subtitle,
+                  style: GoogleFonts.inter(
+                      fontSize: 12.sp, color: palette.subtitle)),
+            ],
+            SizedBox(height: 7.h),
+            Wrap(
+              spacing: 6.w,
+              runSpacing: 5.h,
+              children: [
+                _ActivityStatusPill(
+                  label: '${run.pendingCount} pendente(s)',
+                  color: Colors.orange.shade700,
+                ),
+                _ActivityStatusPill(
+                  label: '${run.correctedCount} corrigida(s)',
+                  color: palette.accentGreen,
+                ),
+                _ActivityStatusPill(
+                  label: '${run.totalStudents} aluno(s)',
+                  color: palette.accentBlue,
+                ),
+              ],
+            ),
+          ],
+        ),
+        children: run.students
+            .map(
+              (student) => ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: Icon(
+                  student.isPending
+                      ? PhosphorIcons.clock
+                      : PhosphorIcons.check_circle,
+                  color: student.isPending
+                      ? Colors.orange.shade700
+                      : palette.accentGreen,
+                ),
+                title: Text(
+                  student.studentName.isNotEmpty
+                      ? student.studentName
+                      : 'Aluno',
+                  style: GoogleFonts.inter(
+                      fontSize: 13.sp, fontWeight: FontWeight.w700),
+                ),
+                subtitle: Text(
+                  student.isPending ? 'Pendente' : 'Corrigida',
+                  style: GoogleFonts.inter(
+                    fontSize: 12.sp,
+                    color: student.isPending
+                        ? Colors.orange.shade700
+                        : palette.accentGreen,
+                  ),
+                ),
+                trailing:
+                    Icon(PhosphorIcons.caret_right, color: palette.subtitle),
+                onTap: () => onStudentTap(student),
+              ),
+            )
+            .toList(growable: false),
+      ),
+    );
+  }
+}
+
+class _ActivityStatusPill extends StatelessWidget {
+  const _ActivityStatusPill({required this.label, required this.color});
+
+  final String label;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(20.r),
+      ),
+      child: Text(
+        label,
+        style: GoogleFonts.inter(
+            fontSize: 10.sp, fontWeight: FontWeight.w700, color: color),
       ),
     );
   }
