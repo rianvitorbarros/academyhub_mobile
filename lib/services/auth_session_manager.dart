@@ -115,7 +115,9 @@ class AuthSessionManager {
   Future<String> _performRefresh() async {
     final refreshToken = await _secureStorage.read(key: _refreshKey);
     if (refreshToken == null || refreshToken.isEmpty) {
-      throw const SessionRefreshException('Sessao sem refresh token.',
+      throw const SessionRefreshException(
+          'Sua sessão expirou. Entre novamente para continuar. '
+          'Suas alterações já salvas foram preservadas.',
           sessionInvalid: true);
     }
     http.Response response;
@@ -142,7 +144,9 @@ class AuthSessionManager {
         response.statusCode == 403) {
       await clearTokens();
       onSessionInvalid?.call();
-      throw const SessionRefreshException('Sessao expirada.',
+      throw const SessionRefreshException(
+          'Sua sessão expirou. Entre novamente para continuar. '
+          'Suas alterações já salvas foram preservadas.',
           sessionInvalid: true);
     }
     throw const SessionRefreshException(
