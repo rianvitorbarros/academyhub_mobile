@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -29,6 +30,8 @@ class AuthSessionManager {
   DateTime? _expiresAt;
   Future<String>? _refreshInFlight;
   Future<void>? _pendingLogoutRetry;
+  Future<String> Function({bool force})? _refreshForTesting;
+  Future<bool> Function()? _hasRefreshTokenForTesting;
   void Function(String?)? onAccessTokenChanged;
   void Function()? onSessionInvalid;
   void Function()? onSessionRenewed;
@@ -75,14 +78,38 @@ class AuthSessionManager {
   }
 
   Future<bool> hasRefreshToken() async =>
+      _hasRefreshTokenForTesting?.call() ??
       (await _secureStorage.read(key: _refreshKey))?.isNotEmpty == true;
 
   Future<String> refresh({bool force = false}) {
+    final refreshForTesting = _refreshForTesting;
+    if (refreshForTesting != null) return refreshForTesting(force: force);
     if (!force && !shouldRefreshSoon && _accessToken != null) {
       return Future.value(_accessToken!);
     }
     return _refreshInFlight ??=
         _performRefresh().whenComplete(() => _refreshInFlight = null);
+  }
+
+  @visibleForTesting
+  void configureForTesting({
+    String? accessToken,
+    DateTime? expiresAt,
+    Future<String> Function({bool force})? refresh,
+    Future<bool> Function()? hasRefreshToken,
+  }) {
+    _accessToken = accessToken;
+    _expiresAt = expiresAt;
+    _refreshForTesting = refresh;
+    _hasRefreshTokenForTesting = hasRefreshToken;
+  }
+
+  @visibleForTesting
+  void resetTestingConfiguration() {
+    _accessToken = null;
+    _expiresAt = null;
+    _refreshForTesting = null;
+    _hasRefreshTokenForTesting = null;
   }
 
   Future<String> _performRefresh() async {

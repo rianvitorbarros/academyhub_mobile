@@ -1,8 +1,19 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../services/auth_session_manager.dart';
 
 class ApiClient {
+  static final http.Client _defaultClient = http.Client();
+  static http.Client? _clientForTesting;
+
+  static http.Client get _client => _clientForTesting ?? _defaultClient;
+
+  @visibleForTesting
+  static void setClientForTesting(http.Client? client) {
+    _clientForTesting = client;
+  }
+
   static Future<http.Response> _send(
     Future<http.Response> Function(Map<String, String> headers) request,
     Map<String, String>? originalHeaders,
@@ -38,33 +49,33 @@ class ApiClient {
   }
 
   static Future<http.Response> get(Uri url, {Map<String, String>? headers}) =>
-      _send((resolved) => http.get(url, headers: resolved), headers);
+      _send((resolved) => _client.get(url, headers: resolved), headers);
 
   static Future<http.Response> post(Uri url,
           {Map<String, String>? headers, Object? body, Encoding? encoding}) =>
       _send(
-          (resolved) =>
-              http.post(url, headers: resolved, body: body, encoding: encoding),
+          (resolved) => _client.post(url,
+              headers: resolved, body: body, encoding: encoding),
           headers);
 
   static Future<http.Response> put(Uri url,
           {Map<String, String>? headers, Object? body, Encoding? encoding}) =>
       _send(
-          (resolved) =>
-              http.put(url, headers: resolved, body: body, encoding: encoding),
+          (resolved) => _client.put(url,
+              headers: resolved, body: body, encoding: encoding),
           headers);
 
   static Future<http.Response> patch(Uri url,
           {Map<String, String>? headers, Object? body, Encoding? encoding}) =>
       _send(
-          (resolved) => http.patch(url,
+          (resolved) => _client.patch(url,
               headers: resolved, body: body, encoding: encoding),
           headers);
 
   static Future<http.Response> delete(Uri url,
           {Map<String, String>? headers, Object? body, Encoding? encoding}) =>
       _send(
-          (resolved) => http.delete(url,
+          (resolved) => _client.delete(url,
               headers: resolved, body: body, encoding: encoding),
           headers);
 }

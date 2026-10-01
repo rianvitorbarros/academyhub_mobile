@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:academyhub_mobile/model/report_card_exam_import_model.dart';
 import 'package:academyhub_mobile/model/report_card_model.dart';
+import 'package:academyhub_mobile/config/api_client.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
@@ -43,7 +44,7 @@ class ReportCardService {
     required String termId,
     required int schoolYear,
   }) async {
-    final response = await http.post(
+    final response = await ApiClient.post(
       _uri('/api/report-cards/generate'),
       headers: _headers(token),
       body: jsonEncode({
@@ -69,7 +70,7 @@ class ReportCardService {
     required int schoolYear,
     required String studentId,
   }) async {
-    final response = await http.get(
+    final response = await ApiClient.get(
       _uri('/api/report-cards/student', {
         'classId': classId,
         'termId': termId,
@@ -87,7 +88,7 @@ class ReportCardService {
     required String token,
     required String reportCardId,
   }) async {
-    final response = await http.get(
+    final response = await ApiClient.get(
       _uri('/api/report-cards/$reportCardId'),
       headers: _headers(token),
     );
@@ -116,7 +117,7 @@ class ReportCardService {
       bodyData['participationScore'] = participationScore;
     }
 
-    final response = await http.patch(
+    final response = await ApiClient.patch(
       _uri('/api/report-cards/$reportCardId/subjects/$subjectId/score'),
       headers: _headers(token),
       body: jsonEncode(bodyData),
@@ -133,7 +134,7 @@ class ReportCardService {
     required List<DevelopmentalCriterionAssessmentModel> criteria,
     String generalObservation = '',
   }) async {
-    final response = await http.patch(
+    final response = await ApiClient.patch(
       _uri(
         '/api/report-cards/$reportCardId/subjects/$subjectId/developmental-assessment',
       ),
@@ -152,7 +153,7 @@ class ReportCardService {
     required String token,
     required String reportCardId,
   }) async {
-    final response = await http.patch(
+    final response = await ApiClient.patch(
       _uri('/api/report-cards/$reportCardId/recalculate-status'),
       headers: _headers(token),
     );
@@ -184,7 +185,7 @@ class ReportCardService {
             'screen': 'TeacherExams',
           })}');
     }
-    final response = await http.get(
+    final response = await ApiClient.get(
       url,
       headers: _headers(token),
     );
@@ -279,7 +280,7 @@ class ReportCardService {
       if (kDebugMode) 'perf': 'true',
     });
     final stopwatch = Stopwatch()..start();
-    final response = await http.get(
+    final response = await ApiClient.get(
       url,
       headers: _headers(token),
     );
@@ -391,7 +392,7 @@ class ReportCardService {
   }) async {
     final url = _uri('/api/report-cards/import/exams/$examId/commit');
     final stopwatch = Stopwatch()..start();
-    final response = await http.post(
+    final response = await ApiClient.post(
       url,
       headers: _headers(token),
       body: jsonEncode({
