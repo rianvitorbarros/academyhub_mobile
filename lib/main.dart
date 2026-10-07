@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'package:academyhub_mobile/config/api_config.dart';
 import 'package:academyhub_mobile/config/app_theme.dart';
 import 'package:academyhub_mobile/main.dart' as NavigationService;
@@ -61,98 +62,125 @@ final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey =
     GlobalKey<ScaffoldMessengerState>();
 
-void main() async {
-  // 1. [CRÍTICO] A PRIMEIRA LINHA TEM QUE SER O ENSURE INITIALIZED, FORA DA ZONE!
+void main() {
+  // The first frame must never depend on a platform SDK. A stalled Firebase
+  // initialization used to prevent runApp from being called, leaving iOS on a
+  // completely white screen with no recovery UI.
   WidgetsFlutterBinding.ensureInitialized();
 
-  // 2. [CRÍTICO] CONFIGURAÇÕES DE PLATAFORMA FORA DA ZONE
-  usePathUrlStrategy();
-  await initializeDateFormatting('pt_BR', null);
-
-  // 3. Inicialização do Firebase (Precisa de DefaultFirebaseOptions na web)
-  // 3. Inicialização do Firebase (Apenas Mobile, como no seu original)
-  try {
-    if (!kIsWeb) {
-      // No Android/iOS não é obrigatório passar options na maioria dos casos
-      await Firebase.initializeApp();
-      NotificationService.instance.init(scaffoldMessengerKey);
-      debugPrint("🔥 [Main] Firebase e Notificações (Mobile) ativados.");
-    } else {
-      debugPrint(
-          "🌐 [Main] Rodando na Web: Firebase/Notificações desativados.");
-    }
-  } catch (e) {
-    debugPrint("⚠️ [Main] Erro ao inicializar Firebase: $e");
+  // Path URL handling is a web concern. Calling it on a native launcher is
+  // unnecessary and makes startup less predictable across platform versions.
+  if (kIsWeb) {
+    usePathUrlStrategy();
   }
 
-  // 4. Inicia a Zona Guardada para pegar exceções do RunApp
-  runZonedGuarded(() {
-    runApp(
-      MultiProvider(
-        providers: [
-          ChangeNotifierProvider(
-            create: (_) => ReportCardProvider(
-              service: ReportCardService(
-                baseUrl: ApiConfig.baseUrl,
+  // This service only receives keys; it does not need Firebase to be ready.
+  NotificationService.instance.init(scaffoldMessengerKey);
+
+  // Render the application before optional platform services. If locale data
+  // or Firebase is unavailable, login remains usable and the failure is
+  // observable in debug logs rather than becoming an infinite white screen.
+  runZonedGuarded(
+    () {
+      runApp(
+        MultiProvider(
+          providers: [
+            ChangeNotifierProvider(
+              create: (_) => ReportCardProvider(
+                service: ReportCardService(baseUrl: ApiConfig.baseUrl),
               ),
             ),
-          ),
-          ChangeNotifierProvider(create: (_) => ThemeProvider()),
-          ChangeNotifierProvider(create: (_) => EnrollmentProvider()),
-          ChangeNotifierProvider(create: (_) => StudentNoteProvider()),
-          ChangeNotifierProvider(create: (_) => AbsenceJustificationProvider()),
-          ChangeNotifierProvider(create: (_) => HorarioProvider()),
-          ChangeNotifierProvider(create: (_) => ExpenseProvider()),
-          ChangeNotifierProvider(create: (_) => AttendanceProvider()),
-          ChangeNotifierProvider(create: (_) => AuthProvider()),
-          ChangeNotifierProxyProvider<AuthProvider, OfflineSyncProvider>(
-            create: (_) => OfflineSyncProvider(),
-            update: (_, auth, previous) {
-              final sync = previous ?? OfflineSyncProvider();
-              unawaited(sync.updateAuth(auth));
-              return sync;
-            },
-          ),
-          ChangeNotifierProvider(create: (_) => AppNotificationProvider()),
-          ChangeNotifierProvider(create: (_) => StudentProvider()),
-          ChangeNotifierProvider(create: (_) => UserProvider()),
-          ChangeNotifierProvider(create: (_) => NegotiationProvider()),
-          ChangeNotifierProvider(create: (_) => InvoiceProvider()),
-          ChangeNotifierProvider(
-            create: (_) => GuardianOfficialDocumentsProvider(),
-          ),
-          ChangeNotifierProvider(create: (_) => SubjectProvider()),
-          ChangeNotifierProvider(create: (_) => ClassProvider()),
-          ChangeNotifierProvider(create: (_) => WhatsappProvider()),
-          ChangeNotifierProvider(create: (_) => AssessmentProvider()),
-          ChangeNotifierProvider(create: (_) => DashboardProvider()),
-          ChangeNotifierProvider(create: (_) => SchoolProvider()),
+            ChangeNotifierProvider(create: (_) => ThemeProvider()),
+            ChangeNotifierProvider(create: (_) => EnrollmentProvider()),
+            ChangeNotifierProvider(create: (_) => StudentNoteProvider()),
+            ChangeNotifierProvider(
+              create: (_) => AbsenceJustificationProvider(),
+            ),
+            ChangeNotifierProvider(create: (_) => HorarioProvider()),
+            ChangeNotifierProvider(create: (_) => ExpenseProvider()),
+            ChangeNotifierProvider(create: (_) => AttendanceProvider()),
+            ChangeNotifierProvider(create: (_) => AuthProvider()),
+            ChangeNotifierProxyProvider<AuthProvider, OfflineSyncProvider>(
+              create: (_) => OfflineSyncProvider(),
+              update: (_, auth, previous) {
+                final sync = previous ?? OfflineSyncProvider();
+                unawaited(sync.updateAuth(auth));
+                return sync;
+              },
+            ),
+            ChangeNotifierProvider(create: (_) => AppNotificationProvider()),
+            ChangeNotifierProvider(create: (_) => StudentProvider()),
+            ChangeNotifierProvider(create: (_) => UserProvider()),
+            ChangeNotifierProvider(create: (_) => NegotiationProvider()),
+            ChangeNotifierProvider(create: (_) => InvoiceProvider()),
+            ChangeNotifierProvider(
+              create: (_) => GuardianOfficialDocumentsProvider(),
+            ),
+            ChangeNotifierProvider(create: (_) => SubjectProvider()),
+            ChangeNotifierProvider(create: (_) => ClassProvider()),
+            ChangeNotifierProvider(create: (_) => WhatsappProvider()),
+            ChangeNotifierProvider(create: (_) => AssessmentProvider()),
+            ChangeNotifierProvider(create: (_) => DashboardProvider()),
+            ChangeNotifierProvider(create: (_) => SchoolProvider()),
 
-          // 👉 ADICIONE ESTA LINHA AQUI:
-          Provider<WebSocketService>(create: (_) => WebSocketService()),
+            // 👉 ADICIONE ESTA LINHA AQUI:
+            Provider<WebSocketService>(create: (_) => WebSocketService()),
 
-          // ==============================================================
-          // [CORREÇÃO APLICADA] Uso do "previous ??" para evitar descarte
-          // ==============================================================
-          ChangeNotifierProxyProvider<AuthProvider, AcademicCalendarProvider>(
-            create: (context) => AcademicCalendarProvider(
-                Provider.of<AuthProvider>(context, listen: false)),
-            update: (context, auth, previous) =>
-                previous ?? AcademicCalendarProvider(auth),
-          ),
-          ChangeNotifierProxyProvider<AuthProvider, ScheduleProvider>(
-            create: (context) => ScheduleProvider(
-                Provider.of<AuthProvider>(context, listen: false)),
-            update: (context, auth, previous) =>
-                previous ?? ScheduleProvider(auth),
-          ),
-        ],
-        child: const MyApp(),
-      ),
-    );
-  }, (error, stack) {
-    runApp(ErrorApp(error: error.toString(), stack: stack.toString()));
-  });
+            // ==============================================================
+            // [CORREÇÃO APLICADA] Uso do "previous ??" para evitar descarte
+            // ==============================================================
+            ChangeNotifierProxyProvider<AuthProvider, AcademicCalendarProvider>(
+              create: (context) => AcademicCalendarProvider(
+                Provider.of<AuthProvider>(context, listen: false),
+              ),
+              update: (context, auth, previous) =>
+                  previous ?? AcademicCalendarProvider(auth),
+            ),
+            ChangeNotifierProxyProvider<AuthProvider, ScheduleProvider>(
+              create: (context) => ScheduleProvider(
+                Provider.of<AuthProvider>(context, listen: false),
+              ),
+              update: (context, auth, previous) =>
+                  previous ?? ScheduleProvider(auth),
+            ),
+          ],
+          child: const MyApp(),
+        ),
+      );
+    },
+    (error, stack) {
+      runApp(ErrorApp(error: error.toString(), stack: stack.toString()));
+    },
+  );
+
+  unawaited(_initializeOptionalPlatformServices());
+}
+
+Future<void> _initializeOptionalPlatformServices() async {
+  try {
+    await initializeDateFormatting(
+      'pt_BR',
+      null,
+    ).timeout(const Duration(seconds: 8));
+  } on TimeoutException {
+    debugPrint('⚠️ [Main] Locale data initialization timed out.');
+  } catch (error) {
+    debugPrint('⚠️ [Main] Locale data initialization failed: $error');
+  }
+
+  if (kIsWeb) {
+    debugPrint('🌐 [Main] Firebase/notifications are disabled on the web.');
+    return;
+  }
+
+  try {
+    await Firebase.initializeApp().timeout(const Duration(seconds: 10));
+    debugPrint('🔥 [Main] Firebase initialized.');
+  } on TimeoutException {
+    debugPrint('⚠️ [Main] Firebase initialization timed out.');
+  } catch (error) {
+    debugPrint('⚠️ [Main] Firebase initialization failed: $error');
+  }
 }
 
 // ... ErrorApp
@@ -176,15 +204,19 @@ class ErrorApp extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Icon(Icons.error_outline,
-                      color: Colors.white, size: 60),
+                  const Icon(
+                    Icons.error_outline,
+                    color: Colors.white,
+                    size: 60,
+                  ),
                   const SizedBox(height: 20),
                   const Text(
                     "ERRO NA INICIALIZAÇÃO",
                     style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 24),
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 24,
+                    ),
                   ),
                   const SizedBox(height: 10),
                   const Text(
@@ -202,22 +234,26 @@ class ErrorApp extends StatelessWidget {
                     child: SelectableText(
                       error,
                       style: const TextStyle(
-                          color: Colors.yellowAccent,
-                          fontFamily: 'Courier',
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14),
+                        color: Colors.yellowAccent,
+                        fontFamily: 'Courier',
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
                     ),
                   ),
                   const SizedBox(height: 20),
-                  const Text("Detalhes Técnicos:",
-                      style: TextStyle(color: Colors.white70)),
+                  const Text(
+                    "Detalhes Técnicos:",
+                    style: TextStyle(color: Colors.white70),
+                  ),
                   const Divider(color: Colors.white30),
                   SelectableText(
                     stack,
                     style: const TextStyle(
-                        color: Colors.white60,
-                        fontFamily: 'Courier',
-                        fontSize: 10),
+                      color: Colors.white60,
+                      fontFamily: 'Courier',
+                      fontSize: 10,
+                    ),
                   ),
                 ],
               ),
@@ -282,7 +318,8 @@ class MyApp extends StatelessWidget {
           if (token == null || token.isEmpty) {
             return const Scaffold(
               body: Center(
-                  child: Text('Token de acesso não fornecido ou inválido.')),
+                child: Text('Token de acesso não fornecido ou inválido.'),
+              ),
             );
           }
 
@@ -314,8 +351,10 @@ class MyApp extends StatelessWidget {
               final extras = state.extra as Map<String, dynamic>?;
               if (extras == null) {
                 return const Scaffold(
-                    body: Center(
-                        child: Text("Dados do resultado não encontrados.")));
+                  body: Center(
+                    child: Text("Dados do resultado não encontrados."),
+                  ),
+                );
               }
               return StudentExamResultScreen(
                 assessment: extras['assessment'],
@@ -338,53 +377,50 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
 
-    return LayoutBuilder(builder: (context, constraints) {
-      final bool isMobile = constraints.maxWidth < 768;
-      final Size designSize =
-          isMobile ? const Size(390, 844) : const Size(1920, 1080);
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final bool isMobile = constraints.maxWidth < 768;
+        final Size designSize = isMobile
+            ? const Size(390, 844)
+            : const Size(1920, 1080);
 
-      return ScreenUtilInit(
-        designSize: designSize,
-        minTextAdapt: true,
-        splitScreenMode: true,
-        builder: (context, child) {
-          return MaterialApp.router(
-            routerConfig: _router,
-            scaffoldMessengerKey: scaffoldMessengerKey,
-            builder: (context, child) => OfflineSyncBanner(
-              child: AppUpdateWatcher(
-                child: child ?? const SizedBox.shrink(),
+        return ScreenUtilInit(
+          designSize: designSize,
+          minTextAdapt: true,
+          splitScreenMode: true,
+          builder: (context, child) {
+            return MaterialApp.router(
+              routerConfig: _router,
+              scaffoldMessengerKey: scaffoldMessengerKey,
+              builder: (context, child) => OfflineSyncBanner(
+                child: AppUpdateWatcher(
+                  child: child ?? const SizedBox.shrink(),
+                ),
               ),
-            ),
-            title: 'Academy Hub',
-            debugShowCheckedModeBanner: false,
-            theme: AppTheme.lightTheme,
-            darkTheme: AppTheme.darkTheme,
-            themeMode: themeProvider.themeMode,
-            localizationsDelegates: const [
-              GlobalMaterialLocalizations.delegate,
-              GlobalWidgetsLocalizations.delegate,
-              GlobalCupertinoLocalizations.delegate,
-            ],
-            supportedLocales: const [
-              Locale('pt', 'BR'),
-              Locale('en', 'US'),
-            ],
-            locale: const Locale('pt', 'BR'),
-          );
-        },
-      );
-    });
+              title: 'Academy Hub',
+              debugShowCheckedModeBanner: false,
+              theme: AppTheme.lightTheme,
+              darkTheme: AppTheme.darkTheme,
+              themeMode: themeProvider.themeMode,
+              localizationsDelegates: const [
+                GlobalMaterialLocalizations.delegate,
+                GlobalWidgetsLocalizations.delegate,
+                GlobalCupertinoLocalizations.delegate,
+              ],
+              supportedLocales: const [Locale('pt', 'BR'), Locale('en', 'US')],
+              locale: const Locale('pt', 'BR'),
+            );
+          },
+        );
+      },
+    );
   }
 }
 
 class AuthWrapper extends StatelessWidget {
   final bool startInGuardianMode;
 
-  const AuthWrapper({
-    super.key,
-    this.startInGuardianMode = false,
-  });
+  const AuthWrapper({super.key, this.startInGuardianMode = false});
 
   @override
   Widget build(BuildContext context) {
@@ -436,8 +472,10 @@ class _StudentTokenHandlerScreenState extends State<StudentTokenHandlerScreen> {
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
 
       // Chamada real para a sua API validando o token temporário
-      final bool success =
-          await authProvider.loginWithMagicLink(widget.token, context);
+      final bool success = await authProvider.loginWithMagicLink(
+        widget.token,
+        context,
+      );
 
       if (!mounted) return;
 
@@ -446,12 +484,14 @@ class _StudentTokenHandlerScreenState extends State<StudentTokenHandlerScreen> {
         context.go('/aluno/faturas');
       } else {
         _showErrorAndRedirect(
-            "Este link expirou ou é inválido. Solicite um novo acesso no WhatsApp.");
+          "Este link expirou ou é inválido. Solicite um novo acesso no WhatsApp.",
+        );
       }
     } catch (e) {
       if (!mounted) return;
       _showErrorAndRedirect(
-          "Erro ao tentar acessar. Tente novamente mais tarde.");
+        "Erro ao tentar acessar. Tente novamente mais tarde.",
+      );
     }
   }
 
