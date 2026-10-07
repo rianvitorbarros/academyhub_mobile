@@ -230,6 +230,19 @@ class GuardianPinRecoveryException implements Exception {
   bool get isExpired =>
       statusCode == 410 || code == 'pin_recovery_challenge_expired';
 
+  /// The recovery proof cannot safely be reused. Start the official flow again
+  /// instead of leaving the guardian on a PIN form that will always fail.
+  bool get requiresRestart =>
+      statusCode == 409 ||
+      const {
+        'pin_recovery_challenge_used',
+        'pin_recovery_challenge_invalid',
+        'pin_recovery_scope_changed',
+      }.contains(code);
+
+  bool get isTemporarilyUnavailable =>
+      statusCode == 503 || code == 'guardian_audit_transaction_unavailable';
+
   @override
   String toString() => message;
 }

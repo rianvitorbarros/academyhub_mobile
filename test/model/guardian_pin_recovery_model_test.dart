@@ -32,7 +32,7 @@ void main() {
     expect(result.options.single.schoolName, 'Escola Sementinha');
   });
 
-  test('classifies recovery rate limit and expiration errors', () {
+  test('classifies recovery errors without exposing recovery credentials', () {
     const limited = GuardianPinRecoveryException(
       'limit',
       code: 'pin_recovery_rate_limited',
@@ -43,10 +43,23 @@ void main() {
       code: 'pin_recovery_challenge_expired',
       statusCode: 410,
     );
+    const consumed = GuardianPinRecoveryException(
+      'used',
+      code: 'pin_recovery_challenge_used',
+      statusCode: 409,
+    );
+    const unavailable = GuardianPinRecoveryException(
+      'unavailable',
+      code: 'guardian_audit_transaction_unavailable',
+      statusCode: 503,
+    );
 
     expect(limited.isRateLimited, isTrue);
     expect(limited.isExpired, isFalse);
     expect(expired.isExpired, isTrue);
+    expect(consumed.requiresRestart, isTrue);
+    expect(unavailable.requiresRestart, isFalse);
+    expect(unavailable.isTemporarilyUnavailable, isTrue);
   });
 
   test('parses successful PIN recovery without credential data', () {

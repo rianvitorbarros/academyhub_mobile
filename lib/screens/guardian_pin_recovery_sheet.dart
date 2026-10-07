@@ -26,6 +26,10 @@ class _GuardianPinRecoverySheetState extends State<GuardianPinRecoverySheet> {
       'Não foi possível confirmar os dados informados. Revise e tente novamente ou procure a escola.';
   static const _limitError =
       'Não foi possível continuar agora. Aguarde alguns minutos e tente novamente.';
+  static const _restartError =
+      'A recuperação foi reiniciada por segurança. Confirme os dados novamente para definir o novo PIN.';
+  static const _temporaryError =
+      'Não foi possível atualizar o PIN agora. Tente novamente em alguns instantes.';
 
   final _identityFormKey = GlobalKey<FormState>();
   final _pinFormKey = GlobalKey<FormState>();
@@ -179,6 +183,17 @@ class _GuardianPinRecoverySheetState extends State<GuardianPinRecoverySheet> {
     });
   }
 
+  void _restartRecovery(String message) {
+    setState(() {
+      _challengeId = null;
+      _verificationToken = null;
+      _pinController.clear();
+      _confirmPinController.clear();
+      _step = 0;
+      _errorMessage = message;
+    });
+  }
+
   Future<void> _completeRecovery() async {
     if (_isLoading || !(_pinFormKey.currentState?.validate() ?? false)) return;
 
@@ -210,18 +225,18 @@ class _GuardianPinRecoverySheetState extends State<GuardianPinRecoverySheet> {
     } on GuardianPinRecoveryException catch (error) {
       if (!mounted) return;
       if (error.isExpired) {
-        setState(() {
-          _challengeId = null;
-          _verificationToken = null;
-          _pinController.clear();
-          _confirmPinController.clear();
-          _step = 0;
-          _errorMessage =
-              'O prazo para recuperação expirou. Confirme seus dados novamente.';
-        });
+        _restartRecovery(
+          'O prazo para recuperação expirou. Confirme seus dados novamente.',
+        );
+      } else if (error.requiresRestart) {
+        _restartRecovery(_restartError);
       } else {
         setState(() {
-          _errorMessage = error.isRateLimited ? _limitError : _genericError;
+          _errorMessage = error.isRateLimited
+              ? _limitError
+              : error.isTemporarilyUnavailable
+                  ? _temporaryError
+                  : _genericError;
         });
       }
     } catch (_) {
