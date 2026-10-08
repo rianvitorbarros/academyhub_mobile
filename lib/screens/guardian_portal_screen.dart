@@ -7,6 +7,8 @@ import 'package:academyhub_mobile/providers/app_notification_provider.dart';
 import 'package:academyhub_mobile/providers/auth_provider.dart';
 import 'package:academyhub_mobile/providers/guardian_official_documents_provider.dart';
 import 'package:academyhub_mobile/providers/invoice_provider.dart';
+import 'package:academyhub_mobile/providers/re_enrollment_provider.dart';
+import 'package:academyhub_mobile/model/re_enrollment_model.dart';
 import 'package:academyhub_mobile/providers/school_provider.dart';
 import 'package:academyhub_mobile/providers/theme_provider.dart';
 import 'package:academyhub_mobile/screens/guardian_activities_screen.dart';
@@ -50,6 +52,8 @@ class _GuardianPortalScreenState extends State<GuardianPortalScreen> {
   String? _focusedAbsenceRequestId;
   int _attendanceFocusNonce = 0;
   int _attendanceRefreshNonce = 0;
+  bool _hasShownReEnrollmentSheetThisSession = false;
+  bool _isSubmittingReEnrollment = false;
   _GuardianFinanceFilter _financeFilter = _GuardianFinanceFilter.priority;
 
   String get _currentSectionLabel {
@@ -246,6 +250,7 @@ class _GuardianPortalScreenState extends State<GuardianPortalScreen> {
     try {
       final auth = context.read<AuthProvider>();
       final notificationProvider = context.read<AppNotificationProvider>();
+      final reEnrollmentProvider = context.read<ReEnrollmentProvider>();
       final token = auth.token;
       final preferredStudentId = (_selectedStudentId ??
               auth.guardianSelectedStudentId ??
@@ -260,6 +265,10 @@ class _GuardianPortalScreenState extends State<GuardianPortalScreen> {
       }
       await _loadGuardianInvoices(studentId: _selectedStudentId);
       await _loadGuardianDocuments(studentId: _selectedStudentId);
+      if ((token ?? '').trim().isNotEmpty) {
+        await reEnrollmentProvider.load(token!.trim());
+        _showReEnrollmentSheetOnce();
+      }
     } on GuardianSessionExpiredException catch (error) {
       await _expireGuardianSession(error);
     }
@@ -320,6 +329,294 @@ class _GuardianPortalScreenState extends State<GuardianPortalScreen> {
         _portalError = e.toString().replaceFirst('Exception: ', '');
         _isPortalLoading = false;
       });
+    }
+  }
+
+  void _showReEnrollmentSheetOnce() {
+    if (_hasShownReEnrollmentSheetThisSession || !mounted) return;
+    final items = context.read<ReEnrollmentProvider>().eligibility?.items ??
+        const <GuardianReEnrollmentItem>[];
+    if (!items.any((item) => item.canRequest || item.financialBlocked)) return;
+    _hasShownReEnrollmentSheetThisSession = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _openReEnrollmentSheet();
+    });
+  }
+
+  Widget _buildReEnrollmentCard() {
+    return Consumer<ReEnrollmentProvider>(builder: (context, provider, _) {
+      final items =
+          provider.eligibility?.items ?? const <GuardianReEnrollmentItem>[];
+      final visible = items
+          .where((item) =>
+              !item.progressionMissing ||
+              item.canRequest ||
+              item.financialBlocked)
+          .toList();
+      if (visible.isEmpty) return const SizedBox.shrink();
+      if (visible.isEmpty) return const SizedBox.shrink();
+      final year = provider.eligibility?.academicYearTo ??
+          visible.first.targetAcademicYear;
+      final blocked = visible.where((item) => item.financialBlocked).length;
+      return InkWell(
+        onTap: _openReEnrollmentSheet,
+        borderRadius: BorderRadius.circular(20.r),
+        child: Ink(
+          padding: EdgeInsets.all(18.w),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(20.r),
+            gradient: const LinearGradient(
+                colors: [Color(0xFF00A859), Color(0xFF007A40)]),
+            boxShadow: [
+              BoxShadow(
+                  color: const Color(0xFF00A859).withOpacity(.20),
+                  blurRadius: 18,
+                  offset: const Offset(0, 8))
+            ],
+          ),
+          child: Row(children: [
+            Container(
+                padding: EdgeInsets.all(11.w),
+                decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(.18),
+                    shape: BoxShape.circle),
+                child: Icon(PhosphorIcons.graduation_cap_fill,
+                    color: Colors.white, size: 25.sp)),
+            SizedBox(width: 13.w),
+            Expanded(
+                child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                  Text('REMATRÍCULAS $year',
+                      style: GoogleFonts.inter(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w800,
+                          fontSize: 13.sp)),
+                  SizedBox(height: 4.h),
+                  Text(
+                      blocked > 0
+                          ? 'Há uma pendência a regularizar antes de solicitar.'
+                          : 'Garanta a vaga do seu aluno para o próximo ano letivo.',
+                      style: GoogleFonts.inter(
+                          color: Colors.white.withOpacity(.92),
+                          fontSize: 12.sp,
+                          height: 1.3)),
+                ])),
+            Icon(PhosphorIcons.caret_right_bold,
+                color: Colors.white, size: 18.sp),
+          ]),
+        ),
+      );
+    });
+  }
+
+  Future<void> _openReEnrollmentSheet() async {
+    final provider = context.read<ReEnrollmentProvider>();
+    final items =
+        provider.eligibility?.items ?? const <GuardianReEnrollmentItem>[];
+    if (items.isEmpty) return;
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) => SafeArea(
+          child: Container(
+        constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(sheetContext).size.height * .84),
+        decoration: BoxDecoration(
+            color: Theme.of(sheetContext).scaffoldBackgroundColor,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(28.r))),
+        padding: EdgeInsets.fromLTRB(20.w, 14.h, 20.w, 24.h),
+        child: Column(children: [
+          Container(
+              width: 42.w,
+              height: 4.h,
+              decoration: BoxDecoration(
+                  color: Colors.grey.shade400,
+                  borderRadius: BorderRadius.circular(4.r))),
+          SizedBox(height: 18.h),
+          Text('Rematrículas ${provider.eligibility?.academicYearTo ?? ''}',
+              style: GoogleFonts.inter(
+                  fontSize: 21.sp, fontWeight: FontWeight.w800)),
+          SizedBox(height: 5.h),
+          Text('O próximo ciclo está chegando!',
+              style: GoogleFonts.inter(
+                  color: _guardianTextSecondary(sheetContext),
+                  fontSize: 13.sp)),
+          SizedBox(height: 16.h),
+          Expanded(
+              child: ListView.separated(
+                  itemCount: items.length,
+                  separatorBuilder: (_, __) => SizedBox(height: 10.h),
+                  itemBuilder: (_, index) =>
+                      _buildReEnrollmentItem(sheetContext, items[index]))),
+        ]),
+      )),
+    );
+  }
+
+  Widget _buildReEnrollmentItem(
+      BuildContext sheetContext, GuardianReEnrollmentItem item) {
+    final isBlocked = item.financialBlocked;
+    final alreadyRequested = item.eligibility == 'ALREADY_REQUESTED';
+    final approved = item.eligibility == 'APPROVED';
+    final rejected = item.eligibility == 'REJECTED';
+    final color = isBlocked
+        ? const Color(0xFFD97706)
+        : approved
+            ? const Color(0xFF00A859)
+            : (alreadyRequested || rejected)
+                ? const Color(0xFF2F80ED)
+                : const Color(0xFF00A859);
+    final status = isBlocked
+        ? 'Rematrícula temporariamente indisponível'
+        : approved
+            ? (item.enrollmentEffectivated
+                ? 'Matrícula confirmada'
+                : 'Rematrícula aprovada')
+            : rejected
+                ? 'Solicitação não aprovada'
+                : alreadyRequested
+                    ? 'Em análise'
+                    : item.canRequest
+                        ? 'Apta para rematrícula'
+                        : 'Estamos preparando a próxima etapa escolar';
+    return Container(
+        padding: EdgeInsets.all(15.w),
+        decoration: BoxDecoration(
+            color: Theme.of(sheetContext).cardColor,
+            borderRadius: BorderRadius.circular(18.r),
+            border: Border.all(color: color.withOpacity(.25))),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(item.studentName,
+              style: GoogleFonts.inter(
+                  fontWeight: FontWeight.w800, fontSize: 15.sp)),
+          SizedBox(height: 10.h),
+          Row(children: [
+            Expanded(
+                child: _reEnrollmentStage('ATUAL',
+                    '${item.currentClass?.name ?? '—'}\n${item.currentClass?.grade ?? ''}')),
+            Icon(PhosphorIcons.arrow_right_bold, color: color, size: 18.sp),
+            Expanded(
+                child: _reEnrollmentStage('PRÓXIMO ANO',
+                    '${item.targetLabel.isEmpty ? 'Série a definir' : item.targetLabel}\n${item.targetAcademicYear}'))
+          ]),
+          SizedBox(height: 12.h),
+          if (item.targetLevel.isNotEmpty || item.targetShift.isNotEmpty)
+            Text(
+                '${item.targetLevel}${item.targetShift.isNotEmpty ? ' • ${item.targetShift}' : ''}',
+                style: GoogleFonts.inter(
+                    color: _guardianTextSecondary(sheetContext),
+                    fontSize: 11.sp)),
+          if (item.formattedMonthlyFee.isNotEmpty) ...[
+            SizedBox(height: 8.h),
+            Text(
+                'Mensalidade ${item.targetAcademicYear}: ${item.formattedMonthlyFee}',
+                style: GoogleFonts.inter(
+                    fontWeight: FontWeight.w800, fontSize: 13.sp)),
+          ],
+          Text(status,
+              style: GoogleFonts.inter(
+                  color: color, fontWeight: FontWeight.w700, fontSize: 12.sp)),
+          if (isBlocked)
+            Padding(
+                padding: EdgeInsets.only(top: 6.h),
+                child: Text(
+                    'Existe uma pendência financeira que precisa ser regularizada antes de solicitar a rematrícula.',
+                    style: GoogleFonts.inter(fontSize: 12.sp, height: 1.35))),
+          if (approved)
+            Padding(
+                padding: EdgeInsets.only(top: 6.h),
+                child: Text(
+                    item.enrollmentEffectivated && item.targetClass != null
+                        ? '${item.studentName} está matriculada para ${item.targetAcademicYear}.\nTurma: ${item.targetClass!.name}'
+                        : 'A escola aprovou a rematrícula para ${item.targetAcademicYear}.\nTurma será definida pela escola.',
+                    style: GoogleFonts.inter(fontSize: 12.sp))),
+          if (rejected)
+            Padding(
+                padding: EdgeInsets.only(top: 6.h),
+                child: Text(
+                    item.rejectionReason.isNotEmpty
+                        ? 'Motivo: ${item.rejectionReason}'
+                        : 'Entre em contato com a escola para mais informações.',
+                    style: GoogleFonts.inter(fontSize: 12.sp))),
+          if (item.progressionMissing)
+            Padding(
+                padding: EdgeInsets.only(top: 6.h),
+                child: Text(
+                    'Estamos preparando as informações da próxima etapa escolar de ${item.studentName}. Entre em contato com a escola caso precise de mais informações.',
+                    style: GoogleFonts.inter(fontSize: 12.sp, height: 1.35))),
+          if (item.canRequest) ...[
+            SizedBox(height: 12.h),
+            SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                    onPressed: _isSubmittingReEnrollment
+                        ? null
+                        : () => _confirmReEnrollment(sheetContext, item),
+                    style: ElevatedButton.styleFrom(
+                        backgroundColor: color,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12.r))),
+                    child: Text(_isSubmittingReEnrollment
+                        ? 'Enviando...'
+                        : 'Garantir vaga')))
+          ],
+        ]));
+  }
+
+  Widget _reEnrollmentStage(String label, String value) =>
+      Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text(label,
+            style: GoogleFonts.inter(
+                fontSize: 9.sp,
+                fontWeight: FontWeight.w800,
+                color: _guardianTextSecondary(context))),
+        SizedBox(height: 3.h),
+        Text(value,
+            style:
+                GoogleFonts.inter(fontSize: 12.sp, fontWeight: FontWeight.w700),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis)
+      ]);
+
+  Future<void> _confirmReEnrollment(
+      BuildContext sheetContext, GuardianReEnrollmentItem item) async {
+    final shouldSubmit = await showDialog<bool>(
+        context: sheetContext,
+        builder: (dialogContext) => AlertDialog(
+                title: const Text('Confirmar rematrícula'),
+                content: Text(
+                    'Você está solicitando a continuidade de ${item.studentName} para o ano letivo de ${item.targetAcademicYear}.\n\nAtual: ${item.currentClass?.name ?? '—'}\nPróxima etapa: ${item.targetLabel}${item.formattedMonthlyFee.isEmpty ? '' : '\nMensalidade: ${item.formattedMonthlyFee}'}'),
+                actions: [
+                  TextButton(
+                      onPressed: () => Navigator.pop(dialogContext, false),
+                      child: const Text('Voltar')),
+                  FilledButton(
+                      onPressed: () => Navigator.pop(dialogContext, true),
+                      child: const Text('Confirmar solicitação'))
+                ]));
+    if (shouldSubmit != true || !mounted) return;
+    try {
+      setState(() => _isSubmittingReEnrollment = true);
+      final token = context.read<AuthProvider>().token;
+      if ((token ?? '').isEmpty) return;
+      await context
+          .read<ReEnrollmentProvider>()
+          .request(token: token!, studentId: item.studentId);
+      if (!mounted || !sheetContext.mounted) return;
+      Navigator.of(sheetContext).pop();
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Solicitação enviada! A escola será avisada.'),
+          behavior: SnackBarBehavior.floating));
+    } catch (error) {
+      if (mounted)
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(error.toString().replaceFirst('Exception: ', '')),
+            behavior: SnackBarBehavior.floating));
+    } finally {
+      if (mounted) setState(() => _isSubmittingReEnrollment = false);
     }
   }
 
@@ -900,6 +1197,8 @@ class _GuardianPortalScreenState extends State<GuardianPortalScreen> {
               ],
             ),
           ],
+          SizedBox(height: 14.h),
+          _buildReEnrollmentCard(),
           SizedBox(height: 14.h),
           _buildSectionLabel('Resumo do portal'),
           SizedBox(height: 10.h),
