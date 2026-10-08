@@ -74,9 +74,6 @@ void main() {
     usePathUrlStrategy();
   }
 
-  // This service only receives keys; it does not need Firebase to be ready.
-  NotificationService.instance.init(scaffoldMessengerKey);
-
   // Render the application before optional platform services. If locale data
   // or Firebase is unavailable, login remains usable and the failure is
   // observable in debug logs rather than becoming an infinite white screen.
@@ -147,6 +144,10 @@ void main() {
           child: const MyApp(),
         ),
       );
+      // NotificationService only receives global keys. Initializing it after
+      // runApp keeps every native/plugin-adjacent call inside the guarded
+      // startup path and guarantees the first Flutter frame is scheduled.
+      NotificationService.instance.init(scaffoldMessengerKey);
     },
     (error, stack) {
       runApp(ErrorApp(error: error.toString(), stack: stack.toString()));
