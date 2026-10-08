@@ -19,6 +19,7 @@ import 'package:academyhub_mobile/providers/guardian_official_documents_provider
 import 'package:academyhub_mobile/providers/horario_provider.dart';
 import 'package:academyhub_mobile/providers/invoice_provider.dart';
 import 'package:academyhub_mobile/providers/report_card_provider.dart';
+import 'package:academyhub_mobile/providers/re_enrollment_provider.dart';
 
 import 'package:academyhub_mobile/providers/schedule_provider.dart';
 import 'package:academyhub_mobile/providers/school_provider.dart';
@@ -110,6 +111,7 @@ void main() {
             ChangeNotifierProvider(create: (_) => UserProvider()),
             ChangeNotifierProvider(create: (_) => NegotiationProvider()),
             ChangeNotifierProvider(create: (_) => InvoiceProvider()),
+            ChangeNotifierProvider(create: (_) => ReEnrollmentProvider()),
             ChangeNotifierProvider(
               create: (_) => GuardianOfficialDocumentsProvider(),
             ),
