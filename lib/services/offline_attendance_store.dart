@@ -108,11 +108,15 @@ class OfflineAttendanceStore {
   String _day(DateTime date) =>
       '${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
 
-  Future<void> saveClasses(List<ClassModel> classes) async {
+  Future<void> saveClasses(
+    List<ClassModel> classes, {
+    String scope = 'all',
+  }) async {
     if (!isActive) return;
+    final key = '$_prefix.classes.${_safeScope(scope)}';
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(
-      '$_prefix.classes',
+      key,
       jsonEncode(classes
           .map((item) => {
                 ...item.toJson(),
@@ -123,10 +127,12 @@ class OfflineAttendanceStore {
     );
   }
 
-  Future<List<ClassModel>> loadClasses() async {
+  Future<List<ClassModel>> loadClasses({String scope = 'all'}) async {
     if (!isActive) return [];
+    final prefix = _prefix;
     final prefs = await SharedPreferences.getInstance();
-    final raw = prefs.getString('$_prefix.classes');
+    final raw = prefs.getString('$prefix.classes.${_safeScope(scope)}') ??
+        (scope == 'all' ? prefs.getString('$prefix.classes') : null);
     if (raw == null) return [];
     try {
       return (jsonDecode(raw) as List)
@@ -136,6 +142,11 @@ class OfflineAttendanceStore {
     } catch (_) {
       return [];
     }
+  }
+
+  String _safeScope(String value) {
+    final normalized = value.trim().replaceAll(RegExp(r'[^a-zA-Z0-9_-]'), '_');
+    return normalized.isEmpty ? 'all' : normalized;
   }
 
   Future<void> saveSheet(AttendanceSheet sheet) async {

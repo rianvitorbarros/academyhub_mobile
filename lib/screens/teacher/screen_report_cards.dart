@@ -12,6 +12,7 @@ import 'package:academyhub_mobile/providers/horario_provider.dart'; // NOVO IMPO
 import 'package:academyhub_mobile/screens/teacher/screen_report_card_detail.dart';
 import 'package:academyhub_mobile/util/early_childhood_criteria_helper.dart';
 import 'package:academyhub_mobile/util/report_card_evaluation_mode_helper.dart';
+import 'package:academyhub_mobile/util/report_card_filter_store.dart';
 import 'package:academyhub_mobile/util/teacher_class_context_helper.dart';
 import 'package:academyhub_mobile/widgets/report_card_operation_dialog.dart';
 import 'package:flutter/material.dart';
@@ -33,10 +34,13 @@ class _ScreenReportCardsState extends State<ScreenReportCards> {
   bool _initialLoading = true;
   String? _error;
   String? _loadedSignature;
+  int _cardRequest = 0;
+  String? _filterScope;
 
   String _schoolYear = '';
   String _term = '';
   String _className = '';
+  String _classId = '';
   String _status = 'Todos';
 
   _ReportCardRowData? _selectedDetail;
@@ -106,9 +110,10 @@ class _ScreenReportCardsState extends State<ScreenReportCards> {
         horarios: horariosProvider.horarios,
         user: user,
         terms: academicProvider.terms,
+        sharedAcrossPeriods: true,
       );
     } catch (_) {
-      return allClasses;
+      return const [];
     }
   }
 
@@ -129,6 +134,23 @@ class _ScreenReportCardsState extends State<ScreenReportCards> {
       var horarios = context.read<HorarioProvider>(); // NOVO
 
       if (auth.token != null) {
+        final userId = auth.user?.id ?? '';
+        final schoolId = auth.user?.schoolId ?? '';
+        final scope = '$schoolId|$userId';
+        if (_filterScope != scope) {
+          final saved = await ReportCardFilterStore.load(
+            userId: userId,
+            schoolId: schoolId,
+          );
+          if (!mounted) return;
+          _filterScope = scope;
+          _schoolYear = saved['year'] ?? '';
+          _term = saved['term'] ?? '';
+          _classId = saved['classId'] ?? '';
+          _status = _statusItems.contains(saved['status'])
+              ? saved['status']!
+              : 'Todos';
+        }
         if (academic.schoolYears.isEmpty) {
           await academic.fetchSchoolYears();
         }
@@ -152,7 +174,17 @@ class _ScreenReportCardsState extends State<ScreenReportCards> {
 
         academic = context.read<AcademicCalendarProvider>();
 
-        final resolvedYear = _resolveSchoolYear(academic.schoolYears);
+        final matchingSavedYear = academic.schoolYears
+            .where((year) => year.year.toString() == _schoolYear)
+            .toList();
+        final selectedYear = academic.selectedSchoolYear;
+        final resolvedYear = matchingSavedYear.isNotEmpty
+            ? matchingSavedYear.first
+            : selectedYear != null &&
+                    academic.schoolYears
+                        .any((year) => year.id == selectedYear.id)
+                ? selectedYear
+                : _resolveSchoolYear(academic.schoolYears);
         if (resolvedYear != null) {
           if (academic.selectedSchoolYear?.id != resolvedYear.id) {
             academic.selectSchoolYear(resolvedYear);
@@ -171,8 +203,15 @@ class _ScreenReportCardsState extends State<ScreenReportCards> {
           horarioProvider: horarios,
           academicProvider: academic,
           forceRefresh: forceReload || horarios.horarios.isEmpty,
+          sharedAcrossPeriods: true,
           screen: 'report_cards',
         );
+        if (classesProvider.error != null) {
+          throw StateError(classesProvider.error!);
+        }
+        if (horarios.error != null) {
+          throw StateError(horarios.error!);
+        }
       }
 
       if (!mounted) return;
@@ -295,7 +334,7 @@ class _ScreenReportCardsState extends State<ScreenReportCards> {
         ? classes
         : classes.where((c) => c.schoolYear == year).toList();
     final source = filtered.isNotEmpty ? filtered : classes;
-    return source.map((e) => e.name).toList();
+    return source.map((e) => e.id).toSet().toList();
   }
 
   void _syncSelections({
@@ -315,9 +354,10 @@ class _ScreenReportCardsState extends State<ScreenReportCards> {
     }
 
     final classLabels = _classItems(classes, _schoolYear);
-    if (_className.isEmpty || !classLabels.contains(_className)) {
-      _className = classLabels.isNotEmpty ? classLabels.first : '';
+    if (_classId.isEmpty || !classLabels.contains(_classId)) {
+      _classId = classLabels.isNotEmpty ? classLabels.first : '';
     }
+    _className = _selectedClassModel(classes)?.name ?? '';
   }
 
   SchoolYearModel? _selectedSchoolYearModel(List<SchoolYearModel> years) {
@@ -344,7 +384,7 @@ class _ScreenReportCardsState extends State<ScreenReportCards> {
         : classes.where((c) => c.schoolYear == year).toList();
     final available = source.isNotEmpty ? source : classes;
     for (final classItem in available) {
-      if (classItem.name == _className) return classItem;
+      if (classItem.id == _classId) return classItem;
     }
     return available.first;
   }
@@ -375,7 +415,7 @@ class _ScreenReportCardsState extends State<ScreenReportCards> {
     }
 
     final signature =
-        '${year.id}|${term.id}|${classItem.id}|$_status|${_searchController.text.trim().toLowerCase()}';
+        '${auth.user?.id}|${auth.user?.schoolId}|${year.id}|${term.id}|${classItem.id}';
 
     if (!force &&
         _loadedSignature == signature &&
@@ -386,9 +426,9 @@ class _ScreenReportCardsState extends State<ScreenReportCards> {
     if (!mounted) return;
     setState(() {
       _error = null;
-      _loadedSignature = signature;
     });
 
+    final request = ++_cardRequest;
     try {
       await cards.generateClassReportCards(
         token: auth.token!,
@@ -396,9 +436,13 @@ class _ScreenReportCardsState extends State<ScreenReportCards> {
         termId: term.id,
         schoolYear: year.year,
       );
+      if (mounted && request == _cardRequest) _loadedSignature = signature;
     } catch (e) {
-      if (!mounted) return;
-      setState(() => _error = _normalizeError(e));
+      if (!mounted || request != _cardRequest) return;
+      setState(() {
+        _loadedSignature = null;
+        _error = _normalizeError(e);
+      });
     }
   }
 
@@ -479,7 +523,8 @@ class _ScreenReportCardsState extends State<ScreenReportCards> {
 
     return rows.where((row) {
       final matchesStatus = _status == 'Todos' || row.status == _status;
-      final matchesClass = _className.isEmpty || row.className == _className;
+      final matchesClass =
+          _classId.isEmpty || row.reportCard.classId == _classId;
       final matchesQuery = query.isEmpty ||
           row.studentName.toLowerCase().contains(query) ||
           row.guardianName.toLowerCase().contains(query);
@@ -508,7 +553,7 @@ class _ScreenReportCardsState extends State<ScreenReportCards> {
   }) async {
     String tempYear = _schoolYear;
     String tempTerm = _term;
-    String tempClass = _className;
+    String tempClass = _classId;
     String tempStatus = _status;
 
     await showModalBottomSheet(
@@ -610,6 +655,7 @@ class _ScreenReportCardsState extends State<ScreenReportCards> {
 
                         academicProvider.selectSchoolYear(resolvedYear);
                         await academicProvider.fetchTermsForSelectedYear();
+                        if (!context.mounted) return;
 
                         final refreshedTerms =
                             _termItems(academicProvider.terms);
@@ -651,6 +697,13 @@ class _ScreenReportCardsState extends State<ScreenReportCards> {
                       icon: PhosphorIcons.chalkboard_teacher,
                       value: tempClass,
                       items: currentClassItems,
+                      itemLabel: (id) {
+                        for (final item in _getAvailableClasses(
+                            context, classProvider.classes, auth.user)) {
+                          if (item.id == id) return item.name;
+                        }
+                        return id;
+                      },
                       palette: palette,
                       onChanged: (value) {
                         if (value == null || value.isEmpty) return;
@@ -701,18 +754,29 @@ class _ScreenReportCardsState extends State<ScreenReportCards> {
                               setState(() {
                                 _schoolYear = tempYear;
                                 _term = tempTerm;
-                                _className = tempClass;
+                                _classId = tempClass;
+                                _className = _selectedClassModel(
+                                      _getAvailableClasses(context,
+                                          classProvider.classes, auth.user),
+                                    )?.name ??
+                                    '';
                                 _status = tempStatus;
                               });
 
-                              final classProvider =
-                                  context.read<ClassProvider>();
-                              final auth = context.read<AuthProvider>();
+                              await ReportCardFilterStore.save(
+                                userId: auth.user?.id ?? '',
+                                schoolId: auth.user?.schoolId ?? '',
+                                year: _schoolYear,
+                                term: _term,
+                                classId: _classId,
+                                status: _status,
+                              );
+                              if (!mounted) return;
 
                               await _loadCards(
                                 force: true,
                                 classesList: _getAvailableClasses(
-                                  context,
+                                  this.context,
                                   classProvider.classes,
                                   auth.user,
                                 ),
@@ -1794,6 +1858,7 @@ class _BottomSheetDropdown extends StatelessWidget {
   final IconData icon;
   final String value;
   final List<String> items;
+  final String Function(String)? itemLabel;
   final _Palette palette;
   final ValueChanged<String?> onChanged;
 
@@ -1802,6 +1867,7 @@ class _BottomSheetDropdown extends StatelessWidget {
     required this.icon,
     required this.value,
     required this.items,
+    this.itemLabel,
     required this.palette,
     required this.onChanged,
   });
@@ -1844,8 +1910,8 @@ class _BottomSheetDropdown extends StatelessWidget {
                           .map(
                             (item) => DropdownMenuItem<String>(
                               value: item,
-                              child:
-                                  Text(item, overflow: TextOverflow.ellipsis),
+                              child: Text(itemLabel?.call(item) ?? item,
+                                  overflow: TextOverflow.ellipsis),
                             ),
                           )
                           .toList(),

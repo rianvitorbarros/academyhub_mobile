@@ -14,6 +14,7 @@ class ClassProvider with ChangeNotifier {
   bool _isLoading = false;
   String? _error;
   bool _isInitialLoading = true;
+  int _fetchRequest = 0;
 
   List<ClassModel> get classes => List.unmodifiable(_classes);
   bool get isLoading => _isLoading;
@@ -42,26 +43,33 @@ class ClassProvider with ChangeNotifier {
   // --- MÉTODOS DE API ---
 
   Future<void> fetchClasses(String token, {Map<String, String>? filter}) async {
+    final request = ++_fetchRequest;
+    final filterEntries = (filter ?? const <String, String>{}).entries.toList()
+      ..sort((left, right) => left.key.compareTo(right.key));
+    final scope = filterEntries.isEmpty
+        ? 'all'
+        : filterEntries.map((entry) => '${entry.key}_${entry.value}').join('_');
     if (_classes.isEmpty) _isInitialLoading = true;
     _setLoading(true);
     _setError(null);
     try {
-      _classes = await _classService.getAllClasses(token, filter: filter);
-      await OfflineAttendanceStore.instance.saveClasses(_classes);
+      final loaded = await _classService.getAllClasses(token, filter: filter);
+      if (request != _fetchRequest) return;
+      _classes = loaded;
+      await OfflineAttendanceStore.instance.saveClasses(loaded, scope: scope);
     } catch (e) {
+      if (request != _fetchRequest) return;
       _setError(e.toString());
-      final cached = await OfflineAttendanceStore.instance.loadClasses();
-      if (cached.isNotEmpty) _classes = cached;
-      if (kDebugMode) {
-        debugPrint(
-          '[TeacherMobile][ClassesProviderError] errorType=${e.runtimeType}',
-        );
-      }
+      final cached =
+          await OfflineAttendanceStore.instance.loadClasses(scope: scope);
+      if (request == _fetchRequest && cached.isNotEmpty) _classes = cached;
     } finally {
-      if (_isInitialLoading) {
-        _isInitialLoading = false; // Só muda na primeira vez
+      if (request == _fetchRequest) {
+        if (_isInitialLoading) {
+          _isInitialLoading = false; // Só muda na primeira vez
+        }
+        _setLoading(false);
       }
-      _setLoading(false);
     }
   }
 
@@ -199,6 +207,7 @@ class ClassProvider with ChangeNotifier {
   }
 
   void clear() {
+    _fetchRequest++;
     _classes = [];
     _isLoading = false;
     _error = null;

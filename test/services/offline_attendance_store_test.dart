@@ -1,4 +1,5 @@
 import 'package:academyhub_mobile/model/attendance_model.dart';
+import 'package:academyhub_mobile/model/class_model.dart';
 import 'package:academyhub_mobile/services/offline_attendance_store.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -74,4 +75,34 @@ void main() {
     expect(pending.single.operationId, replacement.operationId);
     expect(replacement.baseVersion, 4);
   });
+
+  test('isolates teacher class cache by academic year and user', () async {
+    final store = OfflineAttendanceStore.instance;
+    store.activate(userId: 'teacher-1', schoolId: 'school-1');
+    await store.saveClasses(
+      [_class('class-2026')],
+      scope: 'teacher_year-2026',
+    );
+
+    expect(
+      (await store.loadClasses(scope: 'teacher_year-2026')).single.id,
+      'class-2026',
+    );
+    expect(await store.loadClasses(scope: 'teacher_year-2025'), isEmpty);
+
+    store.activate(userId: 'teacher-2', schoolId: 'school-1');
+    expect(await store.loadClasses(scope: 'teacher_year-2026'), isEmpty);
+  });
 }
+
+ClassModel _class(String id) => ClassModel(
+      id: id,
+      name: id,
+      schoolYear: 2026,
+      grade: '1º ano',
+      shift: 'Matutino',
+      monthlyFee: 0,
+      status: 'Ativa',
+      studentCount: 0,
+      schoolId: 'school-1',
+    );

@@ -56,7 +56,10 @@ class ReportCardService {
 
     final data = _decodeResponse(response);
 
-    final list = (data['data'] as List<dynamic>? ?? [])
+    if (data['data'] is! List) {
+      throw const FormatException('Resposta de boletins incompleta.');
+    }
+    final list = (data['data'] as List<dynamic>)
         .map((e) => ReportCardModel.fromJson(e))
         .toList();
 

@@ -12,11 +12,15 @@ class HorarioProvider with ChangeNotifier {
   bool _isLoading = false;
   String? _error;
   bool _isInitialLoading = true;
+  String? _canonicalTeacherId;
+  int _fetchRequest = 0;
 
   List<HorarioModel> get horarios => List.unmodifiable(_horarios);
   bool get isLoading => _isLoading;
   String? get error => _error;
   bool get isInitialLoading => _isInitialLoading;
+  bool hasCanonicalTeacherSchedules(String teacherId) =>
+      teacherId.isNotEmpty && _canonicalTeacherId == teacherId;
 
   void _setLoading(bool loading) {
     if (_isLoading != loading) {
@@ -38,11 +42,13 @@ class HorarioProvider with ChangeNotifier {
   }
 
   void clear() {
+    _fetchRequest++;
     debugPrint('🧹 [HorarioProvider] Cache limpo.');
     _horarios = [];
     _isInitialLoading = true;
     _isLoading = false;
     _error = null;
+    _canonicalTeacherId = null;
     notifyListeners();
   }
 
@@ -50,29 +56,32 @@ class HorarioProvider with ChangeNotifier {
 
   Future<void> fetchHorarios(String token,
       {Map<String, String>? filter, String debugScreen = 'unknown'}) async {
+    final request = ++_fetchRequest;
     if (_horarios.isEmpty) _isInitialLoading = true;
     _setLoading(true);
     _setError(null);
 
     try {
-      _horarios = await _horarioService.getHorarios(
+      final loaded = await _horarioService.getHorarios(
         token,
         filter: filter,
         debugScreen: debugScreen,
       );
+      if (request != _fetchRequest) return;
+      _horarios = loaded;
+      final normalizedFilter = filter ?? const <String, String>{};
+      _canonicalTeacherId = normalizedFilter.length == 1
+          ? normalizedFilter['teacherId']?.trim()
+          : null;
       notifyListeners();
     } catch (e) {
+      if (request != _fetchRequest) return;
       _setError(e.toString());
-      _horarios = [];
-      if (kDebugMode) {
-        debugPrint(
-          '[TeacherMobile][HorariosProviderError] screen=$debugScreen '
-          'errorType=${e.runtimeType}',
-        );
-      }
     } finally {
-      if (_isInitialLoading) _isInitialLoading = false;
-      _setLoading(false);
+      if (request == _fetchRequest) {
+        if (_isInitialLoading) _isInitialLoading = false;
+        _setLoading(false);
+      }
     }
   }
 
