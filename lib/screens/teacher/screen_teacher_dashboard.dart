@@ -11,6 +11,7 @@ import 'package:academyhub_mobile/providers/auth_provider.dart';
 import 'package:academyhub_mobile/services/horario_service.dart';
 import 'package:academyhub_mobile/services/student_service.dart';
 import 'package:academyhub_mobile/services/term_service.dart';
+import 'package:academyhub_mobile/services/performance_trace.dart';
 import 'package:academyhub_mobile/util/teacher_class_context_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_phosphor_icons/flutter_phosphor_icons.dart';
@@ -104,6 +105,7 @@ class _TeacherDashboardViewState extends State<TeacherDashboardView>
   }
 
   Future<void> _fetchDashboardData() async {
+    PerformanceTrace.mark('dashboard.teacher.prepare.begin');
     final auth = Provider.of<AuthProvider>(context, listen: false);
 
     final token = auth.token;
@@ -153,7 +155,8 @@ class _TeacherDashboardViewState extends State<TeacherDashboardView>
 
       final terms = cachedTerms.isNotEmpty && termsMatchSelectedYear
           ? cachedTerms
-          : await _termService.find(token, termFilter);
+          : await PerformanceTrace.measure('dashboard.teacher.terms_api',
+              () => _termService.find(token, termFilter));
       final term = TeacherClassContextHelper.getCurrentTerm(terms);
       final referenceTerm = TeacherClassContextHelper.getReferenceTerm(
         terms,
@@ -176,10 +179,13 @@ class _TeacherDashboardViewState extends State<TeacherDashboardView>
       if (term != null) {
         horarioFilter['termId'] = term.id;
         horarioFilter['resolveInherited'] = 'true';
-        final teacherHorarios = await _horarioService.getHorarios(
-          token,
-          filter: horarioFilter,
-          debugScreen: 'dashboard',
+        final teacherHorarios = await PerformanceTrace.measure(
+          'dashboard.teacher.schedule_api',
+          () => _horarioService.getHorarios(
+            token,
+            filter: horarioFilter,
+            debugScreen: 'dashboard',
+          ),
         );
         _allTeacherClasses = TeacherClassContextHelper.logFilteredHorarios(
           screen: 'dashboard',
@@ -192,10 +198,13 @@ class _TeacherDashboardViewState extends State<TeacherDashboardView>
           currentTerm: term,
         );
       } else {
-        final teacherHorarios = await _horarioService.getHorarios(
-          token,
-          filter: horarioFilter,
-          debugScreen: 'dashboard_assignments',
+        final teacherHorarios = await PerformanceTrace.measure(
+          'dashboard.teacher.assignments_api',
+          () => _horarioService.getHorarios(
+            token,
+            filter: horarioFilter,
+            debugScreen: 'dashboard_assignments',
+          ),
         );
         _allTeacherClasses = TeacherClassContextHelper.assignedHorarios(
           teacherHorarios,
@@ -218,6 +227,9 @@ class _TeacherDashboardViewState extends State<TeacherDashboardView>
       if (mounted) {
         setState(() => _isLoading = false);
         _pageController.forward();
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) PerformanceTrace.mark('dashboard.teacher.first_frame');
+        });
       }
 
       unawaited(_loadBirthdays(token));

@@ -28,8 +28,8 @@
 [[headers]]
   for = "/main.dart.js"
   [headers.values]
-    Cache-Control = "no-cache, no-store, must-revalidate"
-    Netlify-CDN-Cache-Control = "no-cache, no-store, must-revalidate"
+    Cache-Control = "no-cache, must-revalidate"
+    Netlify-CDN-Cache-Control = "no-cache, must-revalidate"
 
 [[headers]]
   for = "/flutter.js"

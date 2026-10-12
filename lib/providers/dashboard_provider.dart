@@ -1,6 +1,7 @@
 import 'package:academyhub_mobile/model/dashboard_model.dart';
 import 'package:academyhub_mobile/services/dashboard_service.dart';
 import 'package:flutter/material.dart';
+import 'package:academyhub_mobile/services/performance_trace.dart';
 
 class DashboardProvider with ChangeNotifier {
   final DashboardService _service = DashboardService();
@@ -24,7 +25,8 @@ class DashboardProvider with ChangeNotifier {
 
     try {
       // Busca os dados novos na API
-      final newData = await _service.getDashboardMetrics(token);
+      final newData = await PerformanceTrace.measure(
+          'dashboard.staff.api', () => _service.getDashboardMetrics(token));
 
       // Atualiza os dados
       _data = newData;

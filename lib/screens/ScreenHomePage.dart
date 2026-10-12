@@ -1,6 +1,7 @@
 import 'package:academyhub_mobile/model/dashboard_model.dart';
 import 'package:academyhub_mobile/providers/auth_provider.dart';
 import 'package:academyhub_mobile/providers/dashboard_provider.dart';
+import 'package:academyhub_mobile/services/performance_trace.dart';
 import 'package:academyhub_mobile/widgets/debtors_list_sheet.dart';
 // import 'package:academyhub_mobile/dashboard/pending_expenses_popup.dart';
 import 'package:flutter/material.dart';
@@ -20,6 +21,7 @@ class ScreenHomePage extends StatefulWidget {
 }
 
 class _ScreenHomePageState extends State<ScreenHomePage> {
+  bool _firstReadyFrameMarked = false;
   @override
   void initState() {
     super.initState();
@@ -67,6 +69,12 @@ class _ScreenHomePageState extends State<ScreenHomePage> {
         final loading = dashboard.isLoading;
 
         if (loading) return const Center(child: CircularProgressIndicator());
+        if (!_firstReadyFrameMarked && data != null) {
+          _firstReadyFrameMarked = true;
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) PerformanceTrace.mark('dashboard.staff.first_frame');
+          });
+        }
 
         // --- CÁLCULOS SEGUROS (PROTEÇÃO CONTRA ERRO DE GRÁFICO) ---
         double receita = (fin?.saldoMes ?? 0).toDouble();

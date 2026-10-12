@@ -1,0 +1,69 @@
+[
+  {
+    "run": 1,
+    "fieldMs": 26205,
+    "fcp": 1812,
+    "imageEnd": 25238.900000035763,
+    "mainEnd": 19651.600000023842
+  },
+  {
+    "run": 2,
+    "error": "TimeoutError: page.goto: Timeout 60000ms exceeded.\nCall log:\n\u001b[2m  - navigating to \"http://127.0.0.1:8123/\", waiting until \"domcontentloaded\"\u001b[22m\n"
+  },
+  {
+    "run": 3,
+    "fieldMs": 27140,
+    "fcp": 2688,
+    "imageEnd": 26206.200000047684,
+    "mainEnd": 20620.600000023842
+  },
+  {
+    "run": 4,
+    "fieldMs": 27095,
+    "fcp": 2744,
+    "imageEnd": 26203,
+    "mainEnd": 20587.19999998808
+  },
+  {
+    "run": 5,
+    "fieldMs": 27025,
+    "fcp": 2720,
+    "imageEnd": 26220.5,
+    "mainEnd": 20597.5
+  },
+  {
+    "run": 6,
+    "fieldMs": 27161,
+    "fcp": 2648,
+    "imageEnd": 26257.69999998808,
+    "mainEnd": 20652.19999998808
+  },
+  {
+    "run": 7,
+    "fieldMs": 27171,
+    "fcp": 2624,
+    "imageEnd": 26230.600000023842,
+    "mainEnd": 20627.200000047684
+  },
+  {
+    "run": 8,
+    "fieldMs": 27094,
+    "fcp": 2692,
+    "imageEnd": 26227,
+    "mainEnd": 20630.399999976158
+  },
+  {
+    "run": 9,
+    "fieldMs": 27024,
+    "fcp": 2672,
+    "imageEnd": 26200.5,
+    "mainEnd": 20571.5
+  },
+  {
+    "run": 10,
+    "fieldMs": 27190,
+    "fcp": 2692,
+    "imageEnd": 26300.69999998808,
+    "mainEnd": 20665
+  }
+]

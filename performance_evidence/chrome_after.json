@@ -1,0 +1,1706 @@
+{
+  "base": "http://127.0.0.1:8123/",
+  "date": "2026-10-11T23:51:35.318Z",
+  "rows": [
+    {
+      "run": 1,
+      "kind": "cold",
+      "fieldMs": 1529,
+      "firstScene": null,
+      "fcp": 760,
+      "domContentLoaded": 53.09999996423721,
+      "imageEnd": 1184.2999999523163,
+      "imageDuration": 3.5,
+      "mainEnd": 238.5,
+      "wasmEnd": 768.2999999523163,
+      "requests": 13,
+      "transfer": 8498207,
+      "longTasks": 6,
+      "longTaskMs": 813,
+      "serviceWorker": false,
+      "resources": [
+        {
+          "name": "/flutter_bootstrap.js",
+          "duration": 28,
+          "transfer": 13227
+        },
+        {
+          "name": "/main.dart.js",
+          "duration": 121,
+          "transfer": 7192121
+        },
+        {
+          "name": "/assets/FontManifest.json",
+          "duration": 5,
+          "transfer": 725
+        },
+        {
+          "name": "/assets/fonts/MaterialIcons-Regular.otf",
+          "duration": 6,
+          "transfer": 19492
+        },
+        {
+          "name": "/assets/lib/assets/GR%2520Milesons%2520Three.otf",
+          "duration": 7,
+          "transfer": 86516
+        },
+        {
+          "name": "/assets/packages/flutter_phosphor_icons/fonts/Phosphor.ttf",
+          "duration": 10,
+          "transfer": 928448
+        },
+        {
+          "name": "/assets/packages/cupertino_icons/assets/CupertinoIcons.ttf",
+          "duration": 7,
+          "transfer": 1772
+        },
+        {
+          "name": "/favicon.png",
+          "duration": 3,
+          "transfer": 6902
+        },
+        {
+          "name": "/assets/AssetManifest.bin.json",
+          "duration": 3,
+          "transfer": 2270
+        },
+        {
+          "name": "/version.json",
+          "duration": 4,
+          "transfer": 582
+        },
+        {
+          "name": "/assets/lib/assets/logo_chapeu_academy.svg",
+          "duration": 2,
+          "transfer": 2392
+        },
+        {
+          "name": "/assets/lib/assets/imagem_de_login.jpg",
+          "duration": 4,
+          "transfer": 242319
+        },
+        {
+          "name": "/assets/lib/assets/google-icon-logo-svgrepo-com.svg",
+          "duration": 3,
+          "transfer": 1441
+        }
+      ],
+      "errors": []
+    },
+    {
+      "run": 1,
+      "kind": "warm",
+      "fieldMs": 547,
+      "firstScene": null,
+      "fcp": 368,
+      "domContentLoaded": 22.100000023841858,
+      "imageEnd": 407.5,
+      "imageDuration": 2.100000023841858,
+      "mainEnd": 134.5,
+      "wasmEnd": 50,
+      "requests": 13,
+      "transfer": 7196003,
+      "longTasks": 2,
+      "longTaskMs": 133,
+      "serviceWorker": false,
+      "resources": [
+        {
+          "name": "/flutter_bootstrap.js",
+          "duration": 4,
+          "transfer": 300
+        },
+        {
+          "name": "/main.dart.js",
+          "duration": 108,
+          "transfer": 7192121
+        },
+        {
+          "name": "/assets/FontManifest.json",
+          "duration": 2,
+          "transfer": 300
+        },
+        {
+          "name": "/assets/fonts/MaterialIcons-Regular.otf",
+          "duration": 2,
+          "transfer": 300
+        },
+        {
+          "name": "/assets/lib/assets/GR%2520Milesons%2520Three.otf",
+          "duration": 3,
+          "transfer": 300
+        },
+        {
+          "name": "/assets/packages/flutter_phosphor_icons/fonts/Phosphor.ttf",
+          "duration": 3,
+          "transfer": 300
+        },
+        {
+          "name": "/assets/packages/cupertino_icons/assets/CupertinoIcons.ttf",
+          "duration": 4,
+          "transfer": 300
+        },
+        {
+          "name": "/favicon.png",
+          "duration": 4,
+          "transfer": 300
+        },
+        {
+          "name": "/assets/AssetManifest.bin.json",
+          "duration": 2,
+          "transfer": 300
+        },
+        {
+          "name": "/version.json",
+          "duration": 3,
+          "transfer": 582
+        },
+        {
+          "name": "/assets/lib/assets/logo_chapeu_academy.svg",
+          "duration": 2,
+          "transfer": 300
+        },
+        {
+          "name": "/assets/lib/assets/imagem_de_login.jpg",
+          "duration": 2,
+          "transfer": 300
+        },
+        {
+          "name": "/assets/lib/assets/google-icon-logo-svgrepo-com.svg",
+          "duration": 2,
+          "transfer": 300
+        }
+      ],
+      "errors": []
+    },
+    {
+      "run": 2,
+      "kind": "cold",
+      "fieldMs": 1339,
+      "firstScene": null,
+      "fcp": 660,
+      "domContentLoaded": 42.5,
+      "imageEnd": 1095.1000000238419,
+      "imageDuration": 3.5,
+      "mainEnd": 166.30000001192093,
+      "wasmEnd": 669.6000000238419,
+      "requests": 13,
+      "transfer": 8498207,
+      "longTasks": 3,
+      "longTaskMs": 550,
+      "serviceWorker": false,
+      "resources": [
+        {
+          "name": "/flutter_bootstrap.js",
+          "duration": 25,
+          "transfer": 13227
+        },
+        {
+          "name": "/main.dart.js",
+          "duration": 116,
+          "transfer": 7192121
+        },
+        {
+          "name": "/assets/FontManifest.json",
+          "duration": 3,
+          "transfer": 725
+        },
+        {
+          "name": "/assets/fonts/MaterialIcons-Regular.otf",
+          "duration": 6,
+          "transfer": 19492
+        },
+        {
+          "name": "/assets/lib/assets/GR%2520Milesons%2520Three.otf",
+          "duration": 6,
+          "transfer": 86516
+        },
+        {
+          "name": "/assets/packages/flutter_phosphor_icons/fonts/Phosphor.ttf",
+          "duration": 10,
+          "transfer": 928448
+        },
+        {
+          "name": "/assets/packages/cupertino_icons/assets/CupertinoIcons.ttf",
+          "duration": 7,
+          "transfer": 1772
+        },
+        {
+          "name": "/favicon.png",
+          "duration": 3,
+          "transfer": 6902
+        },
+        {
+          "name": "/assets/AssetManifest.bin.json",
+          "duration": 3,
+          "transfer": 2270
+        },
+        {
+          "name": "/version.json",
+          "duration": 4,
+          "transfer": 582
+        },
+        {
+          "name": "/assets/lib/assets/logo_chapeu_academy.svg",
+          "duration": 3,
+          "transfer": 2392
+        },
+        {
+          "name": "/assets/lib/assets/imagem_de_login.jpg",
+          "duration": 4,
+          "transfer": 242319
+        },
+        {
+          "name": "/assets/lib/assets/google-icon-logo-svgrepo-com.svg",
+          "duration": 3,
+          "transfer": 1441
+        }
+      ],
+      "errors": []
+    },
+    {
+      "run": 2,
+      "kind": "warm",
+      "fieldMs": 588,
+      "firstScene": null,
+      "fcp": 388,
+      "domContentLoaded": 22.899999976158142,
+      "imageEnd": 421,
+      "imageDuration": 2.400000035762787,
+      "mainEnd": 150.5999999642372,
+      "wasmEnd": 51.59999996423721,
+      "requests": 13,
+      "transfer": 7196003,
+      "longTasks": 2,
+      "longTaskMs": 136,
+      "serviceWorker": false,
+      "resources": [
+        {
+          "name": "/flutter_bootstrap.js",
+          "duration": 3,
+          "transfer": 300
+        },
+        {
+          "name": "/main.dart.js",
+          "duration": 122,
+          "transfer": 7192121
+        },
+        {
+          "name": "/assets/FontManifest.json",
+          "duration": 3,
+          "transfer": 300
+        },
+        {
+          "name": "/assets/fonts/MaterialIcons-Regular.otf",
+          "duration": 3,
+          "transfer": 300
+        },
+        {
+          "name": "/assets/lib/assets/GR%2520Milesons%2520Three.otf",
+          "duration": 3,
+          "transfer": 300
+        },
+        {
+          "name": "/assets/packages/flutter_phosphor_icons/fonts/Phosphor.ttf",
+          "duration": 4,
+          "transfer": 300
+        },
+        {
+          "name": "/assets/packages/cupertino_icons/assets/CupertinoIcons.ttf",
+          "duration": 4,
+          "transfer": 300
+        },
+        {
+          "name": "/favicon.png",
+          "duration": 4,
+          "transfer": 300
+        },
+        {
+          "name": "/assets/AssetManifest.bin.json",
+          "duration": 4,
+          "transfer": 300
+        },
+        {
+          "name": "/version.json",
+          "duration": 3,
+          "transfer": 582
+        },
+        {
+          "name": "/assets/lib/assets/logo_chapeu_academy.svg",
+          "duration": 2,
+          "transfer": 300
+        },
+        {
+          "name": "/assets/lib/assets/imagem_de_login.jpg",
+          "duration": 2,
+          "transfer": 300
+        },
+        {
+          "name": "/assets/lib/assets/google-icon-logo-svgrepo-com.svg",
+          "duration": 3,
+          "transfer": 300
+        }
+      ],
+      "errors": []
+    },
+    {
+      "run": 3,
+      "kind": "cold",
+      "fieldMs": 2240,
+      "firstScene": null,
+      "fcp": 1576,
+      "domContentLoaded": 952.8000000119209,
+      "imageEnd": 1996,
+      "imageDuration": 3.399999976158142,
+      "mainEnd": 1062.9000000357628,
+      "wasmEnd": 1577.4000000357628,
+      "requests": 13,
+      "transfer": 8498207,
+      "longTasks": 3,
+      "longTaskMs": 552,
+      "serviceWorker": false,
+      "resources": [
+        {
+          "name": "/flutter_bootstrap.js",
+          "duration": 27,
+          "transfer": 13227
+        },
+        {
+          "name": "/main.dart.js",
+          "duration": 102,
+          "transfer": 7192121
+        },
+        {
+          "name": "/assets/FontManifest.json",
+          "duration": 3,
+          "transfer": 725
+        },
+        {
+          "name": "/assets/fonts/MaterialIcons-Regular.otf",
+          "duration": 8,
+          "transfer": 19492
+        },
+        {
+          "name": "/assets/lib/assets/GR%2520Milesons%2520Three.otf",
+          "duration": 11,
+          "transfer": 86516
+        },
+        {
+          "name": "/assets/packages/flutter_phosphor_icons/fonts/Phosphor.ttf",
+          "duration": 12,
+          "transfer": 928448
+        },
+        {
+          "name": "/assets/packages/cupertino_icons/assets/CupertinoIcons.ttf",
+          "duration": 9,
+          "transfer": 1772
+        },
+        {
+          "name": "/assets/AssetManifest.bin.json",
+          "duration": 3,
+          "transfer": 2270
+        },
+        {
+          "name": "/version.json",
+          "duration": 4,
+          "transfer": 582
+        },
+        {
+          "name": "/assets/lib/assets/logo_chapeu_academy.svg",
+          "duration": 3,
+          "transfer": 2392
+        },
+        {
+          "name": "/favicon.png",
+          "duration": 3,
+          "transfer": 6902
+        },
+        {
+          "name": "/assets/lib/assets/imagem_de_login.jpg",
+          "duration": 3,
+          "transfer": 242319
+        },
+        {
+          "name": "/assets/lib/assets/google-icon-logo-svgrepo-com.svg",
+          "duration": 3,
+          "transfer": 1441
+        }
+      ],
+      "errors": []
+    },
+    {
+      "run": 3,
+      "kind": "warm",
+      "fieldMs": 585,
+      "firstScene": null,
+      "fcp": 380,
+      "domContentLoaded": 22.099999964237213,
+      "imageEnd": 423.80000001192093,
+      "imageDuration": 3.900000035762787,
+      "mainEnd": 135.89999997615814,
+      "wasmEnd": 57.69999998807907,
+      "requests": 13,
+      "transfer": 7196003,
+      "longTasks": 2,
+      "longTaskMs": 140,
+      "serviceWorker": false,
+      "resources": [
+        {
+          "name": "/flutter_bootstrap.js",
+          "duration": 2,
+          "transfer": 300
+        },
+        {
+          "name": "/main.dart.js",
+          "duration": 109,
+          "transfer": 7192121
+        },
+        {
+          "name": "/assets/FontManifest.json",
+          "duration": 3,
+          "transfer": 300
+        },
+        {
+          "name": "/favicon.png",
+          "duration": 2,
+          "transfer": 300
+        },
+        {
+          "name": "/assets/fonts/MaterialIcons-Regular.otf",
+          "duration": 2,
+          "transfer": 300
+        },
+        {
+          "name": "/assets/lib/assets/GR%2520Milesons%2520Three.otf",
+          "duration": 3,
+          "transfer": 300
+        },
+        {
+          "name": "/assets/packages/flutter_phosphor_icons/fonts/Phosphor.ttf",
+          "duration": 4,
+          "transfer": 300
+        },
+        {
+          "name": "/assets/packages/cupertino_icons/assets/CupertinoIcons.ttf",
+          "duration": 4,
+          "transfer": 300
+        },
+        {
+          "name": "/assets/AssetManifest.bin.json",
+          "duration": 7,
+          "transfer": 300
+        },
+        {
+          "name": "/version.json",
+          "duration": 6,
+          "transfer": 582
+        },
+        {
+          "name": "/assets/lib/assets/logo_chapeu_academy.svg",
+          "duration": 4,
+          "transfer": 300
+        },
+        {
+          "name": "/assets/lib/assets/imagem_de_login.jpg",
+          "duration": 4,
+          "transfer": 300
+        },
+        {
+          "name": "/assets/lib/assets/google-icon-logo-svgrepo-com.svg",
+          "duration": 3,
+          "transfer": 300
+        }
+      ],
+      "errors": []
+    },
+    {
+      "run": 4,
+      "kind": "cold",
+      "fieldMs": 2254,
+      "firstScene": null,
+      "fcp": 1584,
+      "domContentLoaded": 949.2000000476837,
+      "imageEnd": 1977.9000000357628,
+      "imageDuration": 3.800000011920929,
+      "mainEnd": 1062.7000000476837,
+      "wasmEnd": 1566.300000011921,
+      "requests": 13,
+      "transfer": 8498207,
+      "longTasks": 4,
+      "longTaskMs": 603,
+      "serviceWorker": false,
+      "resources": [
+        {
+          "name": "/flutter_bootstrap.js",
+          "duration": 25,
+          "transfer": 13227
+        },
+        {
+          "name": "/main.dart.js",
+          "duration": 106,
+          "transfer": 7192121
+        },
+        {
+          "name": "/assets/FontManifest.json",
+          "duration": 3,
+          "transfer": 725
+        },
+        {
+          "name": "/assets/fonts/MaterialIcons-Regular.otf",
+          "duration": 5,
+          "transfer": 19492
+        },
+        {
+          "name": "/assets/lib/assets/GR%2520Milesons%2520Three.otf",
+          "duration": 6,
+          "transfer": 86516
+        },
+        {
+          "name": "/assets/packages/flutter_phosphor_icons/fonts/Phosphor.ttf",
+          "duration": 12,
+          "transfer": 928448
+        },
+        {
+          "name": "/assets/packages/cupertino_icons/assets/CupertinoIcons.ttf",
+          "duration": 7,
+          "transfer": 1772
+        },
+        {
+          "name": "/favicon.png",
+          "duration": 3,
+          "transfer": 6902
+        },
+        {
+          "name": "/assets/AssetManifest.bin.json",
+          "duration": 3,
+          "transfer": 2270
+        },
+        {
+          "name": "/version.json",
+          "duration": 4,
+          "transfer": 582
+        },
+        {
+          "name": "/assets/lib/assets/logo_chapeu_academy.svg",
+          "duration": 2,
+          "transfer": 2392
+        },
+        {
+          "name": "/assets/lib/assets/imagem_de_login.jpg",
+          "duration": 4,
+          "transfer": 242319
+        },
+        {
+          "name": "/assets/lib/assets/google-icon-logo-svgrepo-com.svg",
+          "duration": 3,
+          "transfer": 1441
+        }
+      ],
+      "errors": []
+    },
+    {
+      "run": 4,
+      "kind": "warm",
+      "fieldMs": 591,
+      "firstScene": null,
+      "fcp": 392,
+      "domContentLoaded": 21.5,
+      "imageEnd": 426.19999998807907,
+      "imageDuration": 2.299999952316284,
+      "mainEnd": 152,
+      "wasmEnd": 49.5,
+      "requests": 13,
+      "transfer": 7196003,
+      "longTasks": 2,
+      "longTaskMs": 138,
+      "serviceWorker": false,
+      "resources": [
+        {
+          "name": "/flutter_bootstrap.js",
+          "duration": 3,
+          "transfer": 300
+        },
+        {
+          "name": "/main.dart.js",
+          "duration": 125,
+          "transfer": 7192121
+        },
+        {
+          "name": "/assets/FontManifest.json",
+          "duration": 2,
+          "transfer": 300
+        },
+        {
+          "name": "/assets/fonts/MaterialIcons-Regular.otf",
+          "duration": 3,
+          "transfer": 300
+        },
+        {
+          "name": "/assets/lib/assets/GR%2520Milesons%2520Three.otf",
+          "duration": 2,
+          "transfer": 300
+        },
+        {
+          "name": "/assets/packages/flutter_phosphor_icons/fonts/Phosphor.ttf",
+          "duration": 4,
+          "transfer": 300
+        },
+        {
+          "name": "/assets/packages/cupertino_icons/assets/CupertinoIcons.ttf",
+          "duration": 3,
+          "transfer": 300
+        },
+        {
+          "name": "/favicon.png",
+          "duration": 3,
+          "transfer": 300
+        },
+        {
+          "name": "/assets/AssetManifest.bin.json",
+          "duration": 2,
+          "transfer": 300
+        },
+        {
+          "name": "/version.json",
+          "duration": 4,
+          "transfer": 582
+        },
+        {
+          "name": "/assets/lib/assets/logo_chapeu_academy.svg",
+          "duration": 2,
+          "transfer": 300
+        },
+        {
+          "name": "/assets/lib/assets/imagem_de_login.jpg",
+          "duration": 2,
+          "transfer": 300
+        },
+        {
+          "name": "/assets/lib/assets/google-icon-logo-svgrepo-com.svg",
+          "duration": 3,
+          "transfer": 300
+        }
+      ],
+      "errors": []
+    },
+    {
+      "run": 5,
+      "kind": "cold",
+      "fieldMs": 2246,
+      "firstScene": null,
+      "fcp": 1580,
+      "domContentLoaded": 954.7000000476837,
+      "imageEnd": 2004.300000011921,
+      "imageDuration": 3.399999976158142,
+      "mainEnd": 1065.1000000238419,
+      "wasmEnd": 1573.6000000238419,
+      "requests": 13,
+      "transfer": 8498207,
+      "longTasks": 3,
+      "longTaskMs": 542,
+      "serviceWorker": false,
+      "resources": [
+        {
+          "name": "/flutter_bootstrap.js",
+          "duration": 26,
+          "transfer": 13227
+        },
+        {
+          "name": "/main.dart.js",
+          "duration": 103,
+          "transfer": 7192121
+        },
+        {
+          "name": "/assets/FontManifest.json",
+          "duration": 3,
+          "transfer": 725
+        },
+        {
+          "name": "/assets/fonts/MaterialIcons-Regular.otf",
+          "duration": 6,
+          "transfer": 19492
+        },
+        {
+          "name": "/assets/lib/assets/GR%2520Milesons%2520Three.otf",
+          "duration": 7,
+          "transfer": 86516
+        },
+        {
+          "name": "/assets/packages/flutter_phosphor_icons/fonts/Phosphor.ttf",
+          "duration": 12,
+          "transfer": 928448
+        },
+        {
+          "name": "/assets/packages/cupertino_icons/assets/CupertinoIcons.ttf",
+          "duration": 7,
+          "transfer": 1772
+        },
+        {
+          "name": "/favicon.png",
+          "duration": 2,
+          "transfer": 6902
+        },
+        {
+          "name": "/assets/AssetManifest.bin.json",
+          "duration": 3,
+          "transfer": 2270
+        },
+        {
+          "name": "/version.json",
+          "duration": 3,
+          "transfer": 582
+        },
+        {
+          "name": "/assets/lib/assets/logo_chapeu_academy.svg",
+          "duration": 3,
+          "transfer": 2392
+        },
+        {
+          "name": "/assets/lib/assets/imagem_de_login.jpg",
+          "duration": 3,
+          "transfer": 242319
+        },
+        {
+          "name": "/assets/lib/assets/google-icon-logo-svgrepo-com.svg",
+          "duration": 3,
+          "transfer": 1441
+        }
+      ],
+      "errors": []
+    },
+    {
+      "run": 5,
+      "kind": "warm",
+      "fieldMs": 643,
+      "firstScene": null,
+      "fcp": 400,
+      "domContentLoaded": 22.100000023841858,
+      "imageEnd": 444.60000002384186,
+      "imageDuration": 2.5,
+      "mainEnd": 165.30000001192093,
+      "wasmEnd": 51,
+      "requests": 13,
+      "transfer": 7196003,
+      "longTasks": 2,
+      "longTaskMs": 143,
+      "serviceWorker": false,
+      "resources": [
+        {
+          "name": "/flutter_bootstrap.js",
+          "duration": 3,
+          "transfer": 300
+        },
+        {
+          "name": "/main.dart.js",
+          "duration": 138,
+          "transfer": 7192121
+        },
+        {
+          "name": "/assets/FontManifest.json",
+          "duration": 2,
+          "transfer": 300
+        },
+        {
+          "name": "/assets/fonts/MaterialIcons-Regular.otf",
+          "duration": 3,
+          "transfer": 300
+        },
+        {
+          "name": "/assets/lib/assets/GR%2520Milesons%2520Three.otf",
+          "duration": 3,
+          "transfer": 300
+        },
+        {
+          "name": "/assets/packages/flutter_phosphor_icons/fonts/Phosphor.ttf",
+          "duration": 4,
+          "transfer": 300
+        },
+        {
+          "name": "/assets/packages/cupertino_icons/assets/CupertinoIcons.ttf",
+          "duration": 4,
+          "transfer": 300
+        },
+        {
+          "name": "/favicon.png",
+          "duration": 3,
+          "transfer": 300
+        },
+        {
+          "name": "/assets/AssetManifest.bin.json",
+          "duration": 2,
+          "transfer": 300
+        },
+        {
+          "name": "/version.json",
+          "duration": 4,
+          "transfer": 582
+        },
+        {
+          "name": "/assets/lib/assets/logo_chapeu_academy.svg",
+          "duration": 2,
+          "transfer": 300
+        },
+        {
+          "name": "/assets/lib/assets/imagem_de_login.jpg",
+          "duration": 3,
+          "transfer": 300
+        },
+        {
+          "name": "/assets/lib/assets/google-icon-logo-svgrepo-com.svg",
+          "duration": 2,
+          "transfer": 300
+        }
+      ],
+      "errors": []
+    },
+    {
+      "run": 6,
+      "kind": "cold",
+      "fieldMs": 2290,
+      "firstScene": null,
+      "fcp": 1596,
+      "domContentLoaded": 956.0999999642372,
+      "imageEnd": 2045.8999999761581,
+      "imageDuration": 3.600000023841858,
+      "mainEnd": 1073.8999999761581,
+      "wasmEnd": 1586.2999999523163,
+      "requests": 13,
+      "transfer": 8498207,
+      "longTasks": 4,
+      "longTaskMs": 605,
+      "serviceWorker": false,
+      "resources": [
+        {
+          "name": "/flutter_bootstrap.js",
+          "duration": 25,
+          "transfer": 13227
+        },
+        {
+          "name": "/main.dart.js",
+          "duration": 111,
+          "transfer": 7192121
+        },
+        {
+          "name": "/assets/FontManifest.json",
+          "duration": 3,
+          "transfer": 725
+        },
+        {
+          "name": "/assets/fonts/MaterialIcons-Regular.otf",
+          "duration": 4,
+          "transfer": 19492
+        },
+        {
+          "name": "/assets/lib/assets/GR%2520Milesons%2520Three.otf",
+          "duration": 6,
+          "transfer": 86516
+        },
+        {
+          "name": "/assets/packages/flutter_phosphor_icons/fonts/Phosphor.ttf",
+          "duration": 12,
+          "transfer": 928448
+        },
+        {
+          "name": "/assets/packages/cupertino_icons/assets/CupertinoIcons.ttf",
+          "duration": 6,
+          "transfer": 1772
+        },
+        {
+          "name": "/assets/AssetManifest.bin.json",
+          "duration": 3,
+          "transfer": 2270
+        },
+        {
+          "name": "/version.json",
+          "duration": 4,
+          "transfer": 582
+        },
+        {
+          "name": "/assets/lib/assets/logo_chapeu_academy.svg",
+          "duration": 2,
+          "transfer": 2392
+        },
+        {
+          "name": "/favicon.png",
+          "duration": 3,
+          "transfer": 6902
+        },
+        {
+          "name": "/assets/lib/assets/imagem_de_login.jpg",
+          "duration": 4,
+          "transfer": 242319
+        },
+        {
+          "name": "/assets/lib/assets/google-icon-logo-svgrepo-com.svg",
+          "duration": 3,
+          "transfer": 1441
+        }
+      ],
+      "errors": []
+    },
+    {
+      "run": 6,
+      "kind": "warm",
+      "fieldMs": 576,
+      "firstScene": null,
+      "fcp": 372,
+      "domContentLoaded": 22,
+      "imageEnd": 409,
+      "imageDuration": 2.899999976158142,
+      "mainEnd": 137.10000002384186,
+      "wasmEnd": 52.10000002384186,
+      "requests": 13,
+      "transfer": 7196003,
+      "longTasks": 2,
+      "longTaskMs": 143,
+      "serviceWorker": false,
+      "resources": [
+        {
+          "name": "/flutter_bootstrap.js",
+          "duration": 3,
+          "transfer": 300
+        },
+        {
+          "name": "/main.dart.js",
+          "duration": 110,
+          "transfer": 7192121
+        },
+        {
+          "name": "/assets/FontManifest.json",
+          "duration": 3,
+          "transfer": 300
+        },
+        {
+          "name": "/assets/fonts/MaterialIcons-Regular.otf",
+          "duration": 2,
+          "transfer": 300
+        },
+        {
+          "name": "/assets/lib/assets/GR%2520Milesons%2520Three.otf",
+          "duration": 3,
+          "transfer": 300
+        },
+        {
+          "name": "/assets/packages/flutter_phosphor_icons/fonts/Phosphor.ttf",
+          "duration": 3,
+          "transfer": 300
+        },
+        {
+          "name": "/assets/packages/cupertino_icons/assets/CupertinoIcons.ttf",
+          "duration": 3,
+          "transfer": 300
+        },
+        {
+          "name": "/favicon.png",
+          "duration": 5,
+          "transfer": 300
+        },
+        {
+          "name": "/assets/AssetManifest.bin.json",
+          "duration": 3,
+          "transfer": 300
+        },
+        {
+          "name": "/version.json",
+          "duration": 4,
+          "transfer": 582
+        },
+        {
+          "name": "/assets/lib/assets/logo_chapeu_academy.svg",
+          "duration": 3,
+          "transfer": 300
+        },
+        {
+          "name": "/assets/lib/assets/imagem_de_login.jpg",
+          "duration": 3,
+          "transfer": 300
+        },
+        {
+          "name": "/assets/lib/assets/google-icon-logo-svgrepo-com.svg",
+          "duration": 3,
+          "transfer": 300
+        }
+      ],
+      "errors": []
+    },
+    {
+      "run": 7,
+      "kind": "cold",
+      "fieldMs": 2254,
+      "firstScene": null,
+      "fcp": 1592,
+      "domContentLoaded": 953.8000000119209,
+      "imageEnd": 2005,
+      "imageDuration": 3.899999976158142,
+      "mainEnd": 1084.800000011921,
+      "wasmEnd": 1605.800000011921,
+      "requests": 13,
+      "transfer": 8498207,
+      "longTasks": 4,
+      "longTaskMs": 604,
+      "serviceWorker": false,
+      "resources": [
+        {
+          "name": "/flutter_bootstrap.js",
+          "duration": 25,
+          "transfer": 13227
+        },
+        {
+          "name": "/main.dart.js",
+          "duration": 123,
+          "transfer": 7192121
+        },
+        {
+          "name": "/assets/FontManifest.json",
+          "duration": 3,
+          "transfer": 725
+        },
+        {
+          "name": "/assets/fonts/MaterialIcons-Regular.otf",
+          "duration": 8,
+          "transfer": 19492
+        },
+        {
+          "name": "/assets/lib/assets/GR%2520Milesons%2520Three.otf",
+          "duration": 10,
+          "transfer": 86516
+        },
+        {
+          "name": "/assets/packages/flutter_phosphor_icons/fonts/Phosphor.ttf",
+          "duration": 12,
+          "transfer": 928448
+        },
+        {
+          "name": "/assets/packages/cupertino_icons/assets/CupertinoIcons.ttf",
+          "duration": 9,
+          "transfer": 1772
+        },
+        {
+          "name": "/assets/AssetManifest.bin.json",
+          "duration": 3,
+          "transfer": 2270
+        },
+        {
+          "name": "/version.json",
+          "duration": 4,
+          "transfer": 582
+        },
+        {
+          "name": "/assets/lib/assets/logo_chapeu_academy.svg",
+          "duration": 3,
+          "transfer": 2392
+        },
+        {
+          "name": "/favicon.png",
+          "duration": 3,
+          "transfer": 6902
+        },
+        {
+          "name": "/assets/lib/assets/imagem_de_login.jpg",
+          "duration": 4,
+          "transfer": 242319
+        },
+        {
+          "name": "/assets/lib/assets/google-icon-logo-svgrepo-com.svg",
+          "duration": 3,
+          "transfer": 1441
+        }
+      ],
+      "errors": []
+    },
+    {
+      "run": 7,
+      "kind": "warm",
+      "fieldMs": 574,
+      "firstScene": null,
+      "fcp": 384,
+      "domContentLoaded": 22.700000047683716,
+      "imageEnd": 409.5,
+      "imageDuration": 2.899999976158142,
+      "mainEnd": 133.5,
+      "wasmEnd": 60.30000001192093,
+      "requests": 13,
+      "transfer": 7196003,
+      "longTasks": 2,
+      "longTaskMs": 146,
+      "serviceWorker": false,
+      "resources": [
+        {
+          "name": "/flutter_bootstrap.js",
+          "duration": 2,
+          "transfer": 300
+        },
+        {
+          "name": "/main.dart.js",
+          "duration": 106,
+          "transfer": 7192121
+        },
+        {
+          "name": "/assets/FontManifest.json",
+          "duration": 3,
+          "transfer": 300
+        },
+        {
+          "name": "/assets/fonts/MaterialIcons-Regular.otf",
+          "duration": 2,
+          "transfer": 300
+        },
+        {
+          "name": "/assets/lib/assets/GR%2520Milesons%2520Three.otf",
+          "duration": 3,
+          "transfer": 300
+        },
+        {
+          "name": "/assets/packages/flutter_phosphor_icons/fonts/Phosphor.ttf",
+          "duration": 3,
+          "transfer": 300
+        },
+        {
+          "name": "/assets/packages/cupertino_icons/assets/CupertinoIcons.ttf",
+          "duration": 3,
+          "transfer": 300
+        },
+        {
+          "name": "/favicon.png",
+          "duration": 5,
+          "transfer": 300
+        },
+        {
+          "name": "/assets/AssetManifest.bin.json",
+          "duration": 3,
+          "transfer": 300
+        },
+        {
+          "name": "/version.json",
+          "duration": 4,
+          "transfer": 582
+        },
+        {
+          "name": "/assets/lib/assets/logo_chapeu_academy.svg",
+          "duration": 3,
+          "transfer": 300
+        },
+        {
+          "name": "/assets/lib/assets/imagem_de_login.jpg",
+          "duration": 3,
+          "transfer": 300
+        },
+        {
+          "name": "/assets/lib/assets/google-icon-logo-svgrepo-com.svg",
+          "duration": 3,
+          "transfer": 300
+        }
+      ],
+      "errors": []
+    },
+    {
+      "run": 8,
+      "kind": "cold",
+      "fieldMs": 2238,
+      "firstScene": null,
+      "fcp": 1576,
+      "domContentLoaded": 953.9000000357628,
+      "imageEnd": 1990.300000011921,
+      "imageDuration": 3.699999988079071,
+      "mainEnd": 1071.4000000357628,
+      "wasmEnd": 1593.7000000476837,
+      "requests": 13,
+      "transfer": 8498207,
+      "longTasks": 4,
+      "longTaskMs": 611,
+      "serviceWorker": false,
+      "resources": [
+        {
+          "name": "/flutter_bootstrap.js",
+          "duration": 26,
+          "transfer": 13227
+        },
+        {
+          "name": "/main.dart.js",
+          "duration": 110,
+          "transfer": 7192121
+        },
+        {
+          "name": "/assets/FontManifest.json",
+          "duration": 3,
+          "transfer": 725
+        },
+        {
+          "name": "/assets/fonts/MaterialIcons-Regular.otf",
+          "duration": 8,
+          "transfer": 19492
+        },
+        {
+          "name": "/assets/lib/assets/GR%2520Milesons%2520Three.otf",
+          "duration": 11,
+          "transfer": 86516
+        },
+        {
+          "name": "/assets/packages/flutter_phosphor_icons/fonts/Phosphor.ttf",
+          "duration": 12,
+          "transfer": 928448
+        },
+        {
+          "name": "/assets/packages/cupertino_icons/assets/CupertinoIcons.ttf",
+          "duration": 10,
+          "transfer": 1772
+        },
+        {
+          "name": "/assets/AssetManifest.bin.json",
+          "duration": 3,
+          "transfer": 2270
+        },
+        {
+          "name": "/version.json",
+          "duration": 4,
+          "transfer": 582
+        },
+        {
+          "name": "/assets/lib/assets/logo_chapeu_academy.svg",
+          "duration": 2,
+          "transfer": 2392
+        },
+        {
+          "name": "/favicon.png",
+          "duration": 3,
+          "transfer": 6902
+        },
+        {
+          "name": "/assets/lib/assets/imagem_de_login.jpg",
+          "duration": 4,
+          "transfer": 242319
+        },
+        {
+          "name": "/assets/lib/assets/google-icon-logo-svgrepo-com.svg",
+          "duration": 3,
+          "transfer": 1441
+        }
+      ],
+      "errors": []
+    },
+    {
+      "run": 8,
+      "kind": "warm",
+      "fieldMs": 592,
+      "firstScene": null,
+      "fcp": 388,
+      "domContentLoaded": 22.599999964237213,
+      "imageEnd": 423.30000001192093,
+      "imageDuration": 2.800000011920929,
+      "mainEnd": 151,
+      "wasmEnd": 51.5,
+      "requests": 13,
+      "transfer": 7196003,
+      "longTasks": 2,
+      "longTaskMs": 143,
+      "serviceWorker": false,
+      "resources": [
+        {
+          "name": "/flutter_bootstrap.js",
+          "duration": 2,
+          "transfer": 300
+        },
+        {
+          "name": "/main.dart.js",
+          "duration": 123,
+          "transfer": 7192121
+        },
+        {
+          "name": "/assets/FontManifest.json",
+          "duration": 3,
+          "transfer": 300
+        },
+        {
+          "name": "/assets/fonts/MaterialIcons-Regular.otf",
+          "duration": 2,
+          "transfer": 300
+        },
+        {
+          "name": "/assets/lib/assets/GR%2520Milesons%2520Three.otf",
+          "duration": 4,
+          "transfer": 300
+        },
+        {
+          "name": "/assets/packages/flutter_phosphor_icons/fonts/Phosphor.ttf",
+          "duration": 3,
+          "transfer": 300
+        },
+        {
+          "name": "/assets/packages/cupertino_icons/assets/CupertinoIcons.ttf",
+          "duration": 3,
+          "transfer": 300
+        },
+        {
+          "name": "/favicon.png",
+          "duration": 5,
+          "transfer": 300
+        },
+        {
+          "name": "/assets/AssetManifest.bin.json",
+          "duration": 3,
+          "transfer": 300
+        },
+        {
+          "name": "/version.json",
+          "duration": 4,
+          "transfer": 582
+        },
+        {
+          "name": "/assets/lib/assets/logo_chapeu_academy.svg",
+          "duration": 2,
+          "transfer": 300
+        },
+        {
+          "name": "/assets/lib/assets/imagem_de_login.jpg",
+          "duration": 3,
+          "transfer": 300
+        },
+        {
+          "name": "/assets/lib/assets/google-icon-logo-svgrepo-com.svg",
+          "duration": 3,
+          "transfer": 300
+        }
+      ],
+      "errors": []
+    },
+    {
+      "run": 9,
+      "kind": "cold",
+      "fieldMs": 2231,
+      "firstScene": null,
+      "fcp": 1564,
+      "domContentLoaded": 954.3000000119209,
+      "imageEnd": 1987.9000000357628,
+      "imageDuration": 3.600000023841858,
+      "mainEnd": 1066.800000011921,
+      "wasmEnd": 1573.9000000357628,
+      "requests": 13,
+      "transfer": 8498207,
+      "longTasks": 4,
+      "longTaskMs": 609,
+      "serviceWorker": false,
+      "resources": [
+        {
+          "name": "/flutter_bootstrap.js",
+          "duration": 26,
+          "transfer": 13227
+        },
+        {
+          "name": "/main.dart.js",
+          "duration": 104,
+          "transfer": 7192121
+        },
+        {
+          "name": "/assets/FontManifest.json",
+          "duration": 3,
+          "transfer": 725
+        },
+        {
+          "name": "/assets/fonts/MaterialIcons-Regular.otf",
+          "duration": 5,
+          "transfer": 19492
+        },
+        {
+          "name": "/assets/lib/assets/GR%2520Milesons%2520Three.otf",
+          "duration": 6,
+          "transfer": 86516
+        },
+        {
+          "name": "/assets/packages/flutter_phosphor_icons/fonts/Phosphor.ttf",
+          "duration": 10,
+          "transfer": 928448
+        },
+        {
+          "name": "/assets/packages/cupertino_icons/assets/CupertinoIcons.ttf",
+          "duration": 6,
+          "transfer": 1772
+        },
+        {
+          "name": "/favicon.png",
+          "duration": 3,
+          "transfer": 6902
+        },
+        {
+          "name": "/assets/AssetManifest.bin.json",
+          "duration": 3,
+          "transfer": 2270
+        },
+        {
+          "name": "/version.json",
+          "duration": 4,
+          "transfer": 582
+        },
+        {
+          "name": "/assets/lib/assets/logo_chapeu_academy.svg",
+          "duration": 3,
+          "transfer": 2392
+        },
+        {
+          "name": "/assets/lib/assets/imagem_de_login.jpg",
+          "duration": 4,
+          "transfer": 242319
+        },
+        {
+          "name": "/assets/lib/assets/google-icon-logo-svgrepo-com.svg",
+          "duration": 2,
+          "transfer": 1441
+        }
+      ],
+      "errors": []
+    },
+    {
+      "run": 9,
+      "kind": "warm",
+      "fieldMs": 643,
+      "firstScene": null,
+      "fcp": 396,
+      "domContentLoaded": 22.69999998807907,
+      "imageEnd": 431.69999998807907,
+      "imageDuration": 2.5,
+      "mainEnd": 151,
+      "wasmEnd": 51.89999997615814,
+      "requests": 13,
+      "transfer": 7196003,
+      "longTasks": 2,
+      "longTaskMs": 145,
+      "serviceWorker": false,
+      "resources": [
+        {
+          "name": "/flutter_bootstrap.js",
+          "duration": 3,
+          "transfer": 300
+        },
+        {
+          "name": "/main.dart.js",
+          "duration": 123,
+          "transfer": 7192121
+        },
+        {
+          "name": "/assets/FontManifest.json",
+          "duration": 2,
+          "transfer": 300
+        },
+        {
+          "name": "/assets/fonts/MaterialIcons-Regular.otf",
+          "duration": 2,
+          "transfer": 300
+        },
+        {
+          "name": "/assets/lib/assets/GR%2520Milesons%2520Three.otf",
+          "duration": 3,
+          "transfer": 300
+        },
+        {
+          "name": "/assets/packages/flutter_phosphor_icons/fonts/Phosphor.ttf",
+          "duration": 4,
+          "transfer": 300
+        },
+        {
+          "name": "/assets/packages/cupertino_icons/assets/CupertinoIcons.ttf",
+          "duration": 5,
+          "transfer": 300
+        },
+        {
+          "name": "/favicon.png",
+          "duration": 4,
+          "transfer": 300
+        },
+        {
+          "name": "/assets/AssetManifest.bin.json",
+          "duration": 2,
+          "transfer": 300
+        },
+        {
+          "name": "/version.json",
+          "duration": 4,
+          "transfer": 582
+        },
+        {
+          "name": "/assets/lib/assets/logo_chapeu_academy.svg",
+          "duration": 2,
+          "transfer": 300
+        },
+        {
+          "name": "/assets/lib/assets/imagem_de_login.jpg",
+          "duration": 3,
+          "transfer": 300
+        },
+        {
+          "name": "/assets/lib/assets/google-icon-logo-svgrepo-com.svg",
+          "duration": 3,
+          "transfer": 300
+        }
+      ],
+      "errors": []
+    },
+    {
+      "run": 10,
+      "kind": "cold",
+      "fieldMs": 2227,
+      "firstScene": null,
+      "fcp": 1552,
+      "domContentLoaded": 953.3000000119209,
+      "imageEnd": 1981.4000000357628,
+      "imageDuration": 3.5,
+      "mainEnd": 1057.9000000357628,
+      "wasmEnd": 1571.1000000238419,
+      "requests": 13,
+      "transfer": 8498207,
+      "longTasks": 4,
+      "longTaskMs": 603,
+      "serviceWorker": false,
+      "resources": [
+        {
+          "name": "/flutter_bootstrap.js",
+          "duration": 26,
+          "transfer": 13227
+        },
+        {
+          "name": "/main.dart.js",
+          "duration": 97,
+          "transfer": 7192121
+        },
+        {
+          "name": "/assets/FontManifest.json",
+          "duration": 3,
+          "transfer": 725
+        },
+        {
+          "name": "/assets/fonts/MaterialIcons-Regular.otf",
+          "duration": 8,
+          "transfer": 19492
+        },
+        {
+          "name": "/assets/lib/assets/GR%2520Milesons%2520Three.otf",
+          "duration": 12,
+          "transfer": 86516
+        },
+        {
+          "name": "/assets/packages/flutter_phosphor_icons/fonts/Phosphor.ttf",
+          "duration": 13,
+          "transfer": 928448
+        },
+        {
+          "name": "/assets/packages/cupertino_icons/assets/CupertinoIcons.ttf",
+          "duration": 9,
+          "transfer": 1772
+        },
+        {
+          "name": "/favicon.png",
+          "duration": 2,
+          "transfer": 6902
+        },
+        {
+          "name": "/assets/AssetManifest.bin.json",
+          "duration": 3,
+          "transfer": 2270
+        },
+        {
+          "name": "/version.json",
+          "duration": 4,
+          "transfer": 582
+        },
+        {
+          "name": "/assets/lib/assets/logo_chapeu_academy.svg",
+          "duration": 3,
+          "transfer": 2392
+        },
+        {
+          "name": "/assets/lib/assets/imagem_de_login.jpg",
+          "duration": 4,
+          "transfer": 242319
+        },
+        {
+          "name": "/assets/lib/assets/google-icon-logo-svgrepo-com.svg",
+          "duration": 3,
+          "transfer": 1441
+        }
+      ],
+      "errors": []
+    },
+    {
+      "run": 10,
+      "kind": "warm",
+      "fieldMs": 566,
+      "firstScene": null,
+      "fcp": 372,
+      "domContentLoaded": 23.599999964237213,
+      "imageEnd": 403.5999999642372,
+      "imageDuration": 3.099999964237213,
+      "mainEnd": 134.89999997615814,
+      "wasmEnd": 59.19999998807907,
+      "requests": 13,
+      "transfer": 7196003,
+      "longTasks": 2,
+      "longTaskMs": 146,
+      "serviceWorker": false,
+      "resources": [
+        {
+          "name": "/flutter_bootstrap.js",
+          "duration": 2,
+          "transfer": 300
+        },
+        {
+          "name": "/main.dart.js",
+          "duration": 106,
+          "transfer": 7192121
+        },
+        {
+          "name": "/assets/FontManifest.json",
+          "duration": 2,
+          "transfer": 300
+        },
+        {
+          "name": "/favicon.png",
+          "duration": 2,
+          "transfer": 300
+        },
+        {
+          "name": "/assets/fonts/MaterialIcons-Regular.otf",
+          "duration": 2,
+          "transfer": 300
+        },
+        {
+          "name": "/assets/lib/assets/GR%2520Milesons%2520Three.otf",
+          "duration": 2,
+          "transfer": 300
+        },
+        {
+          "name": "/assets/packages/flutter_phosphor_icons/fonts/Phosphor.ttf",
+          "duration": 3,
+          "transfer": 300
+        },
+        {
+          "name": "/assets/packages/cupertino_icons/assets/CupertinoIcons.ttf",
+          "duration": 4,
+          "transfer": 300
+        },
+        {
+          "name": "/assets/AssetManifest.bin.json",
+          "duration": 3,
+          "transfer": 300
+        },
+        {
+          "name": "/version.json",
+          "duration": 4,
+          "transfer": 582
+        },
+        {
+          "name": "/assets/lib/assets/logo_chapeu_academy.svg",
+          "duration": 3,
+          "transfer": 300
+        },
+        {
+          "name": "/assets/lib/assets/imagem_de_login.jpg",
+          "duration": 3,
+          "transfer": 300
+        },
+        {
+          "name": "/assets/lib/assets/google-icon-logo-svgrepo-com.svg",
+          "duration": 3,
+          "transfer": 300
+        }
+      ],
+      "errors": []
+    }
+  ]
+}
