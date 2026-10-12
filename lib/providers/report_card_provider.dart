@@ -17,6 +17,7 @@ class ReportCardProvider extends ChangeNotifier {
 
   ReportCardModel? _currentReportCard;
   List<ReportCardModel> _classReportCards = [];
+  int _generationRequest = 0;
 
   bool get isLoading => _isLoading;
   bool get isGenerating => _isGenerating;
@@ -70,6 +71,7 @@ class ReportCardProvider extends ChangeNotifier {
   }
 
   void clear() {
+    _generationRequest++;
     _isLoading = false;
     _isGenerating = false;
     _isSaving = false;
@@ -86,8 +88,10 @@ class ReportCardProvider extends ChangeNotifier {
     required String termId,
     required int schoolYear,
   }) async {
+    final request = ++_generationRequest;
     _isGenerating = true;
     _errorMessage = null;
+    _classReportCards = [];
     notifyListeners();
 
     try {
@@ -98,14 +102,16 @@ class ReportCardProvider extends ChangeNotifier {
         schoolYear: schoolYear,
       );
 
-      _classReportCards = result;
+      if (request == _generationRequest) _classReportCards = result;
       return result;
     } catch (e) {
-      _errorMessage = e.toString();
+      if (request == _generationRequest) _errorMessage = e.toString();
       rethrow;
     } finally {
-      _isGenerating = false;
-      notifyListeners();
+      if (request == _generationRequest) {
+        _isGenerating = false;
+        notifyListeners();
+      }
     }
   }
 

@@ -3,12 +3,10 @@ import 'package:academyhub_mobile/model/horario_model.dart';
 import 'package:academyhub_mobile/model/subject_model.dart';
 import 'package:academyhub_mobile/model/term_model.dart';
 import 'package:academyhub_mobile/model/user_model.dart';
-import 'package:academyhub_mobile/config/api_config.dart';
 import 'package:academyhub_mobile/providers/academic_calendar_provider.dart';
 import 'package:academyhub_mobile/providers/auth_provider.dart';
 import 'package:academyhub_mobile/providers/class_provider.dart';
 import 'package:academyhub_mobile/providers/horario_provider.dart';
-import 'package:flutter/foundation.dart';
 
 class TeacherClassSuggestion {
   final ClassModel classData;
@@ -36,6 +34,7 @@ class TeacherClassContextHelper {
     required HorarioProvider horarioProvider,
     required AcademicCalendarProvider academicProvider,
     bool forceRefresh = false,
+    bool sharedAcrossPeriods = false,
     String screen = 'classes',
   }) async {
     final token = authProvider.token;
@@ -45,29 +44,18 @@ class TeacherClassContextHelper {
       return;
     }
 
-    final futures = <Future<void>>[];
-
-    if (forceRefresh || classProvider.classes.isEmpty) {
-      final filter = <String, String>{};
-      if ((user?.schoolId ?? '').trim().isNotEmpty) {
-        filter['schoolId'] = user!.schoolId;
-      }
-      futures.add(classProvider.fetchClasses(token, filter: filter));
+    if (academicProvider.schoolYears.isEmpty) {
+      await academicProvider.fetchSchoolYears();
     }
 
-    futures.add(Future<void>(() async {
-      if (academicProvider.schoolYears.isEmpty) {
-        await academicProvider.fetchSchoolYears();
-      }
-
-      if (academicProvider.schoolYears.isEmpty) {
-        return;
-      }
-
+    if (academicProvider.schoolYears.isNotEmpty) {
       final currentYear = DateTime.now().year;
       final resolvedYear = academicProvider.schoolYears.firstWhere(
-        (year) => year.year == currentYear,
-        orElse: () => academicProvider.schoolYears.first,
+        (year) => year.id == academicProvider.selectedSchoolYear?.id,
+        orElse: () => academicProvider.schoolYears.firstWhere(
+          (year) => year.year == currentYear,
+          orElse: () => academicProvider.schoolYears.first,
+        ),
       );
 
       if (academicProvider.selectedSchoolYear?.id != resolvedYear.id) {
@@ -77,9 +65,19 @@ class TeacherClassContextHelper {
       if (forceRefresh || academicProvider.terms.isEmpty) {
         await academicProvider.fetchTermsForSelectedYear();
       }
-    }));
+    }
 
-    await Future.wait(futures);
+    if (forceRefresh || classProvider.classes.isEmpty) {
+      final filter = <String, String>{'status': 'Ativa'};
+      if ((user?.schoolId ?? '').trim().isNotEmpty) {
+        filter['schoolId'] = user!.schoolId;
+      }
+      final selectedYear = academicProvider.selectedSchoolYear;
+      if (selectedYear != null) {
+        filter['schoolYear'] = selectedYear.year.toString();
+      }
+      await classProvider.fetchClasses(token, filter: filter);
+    }
 
     final currentTerm = getCurrentTerm(academicProvider.terms);
     final referenceTerm = getReferenceTerm(
@@ -98,10 +96,13 @@ class TeacherClassContextHelper {
       horarioProvider.horarios,
       academicProvider.terms,
       user: user,
+      sharedAcrossPeriods: sharedAcrossPeriods,
     );
 
     if (forceRefresh ||
         horarioProvider.horarios.isEmpty ||
+        (!isPrivilegedUser(user) &&
+            !horarioProvider.hasCanonicalTeacherSchedules(user?.id ?? '')) ||
         relevantForTeacher.isEmpty) {
       final filter = <String, String>{};
       if (!isPrivilegedUser(user) && (user?.id ?? '').trim().isNotEmpty) {
@@ -188,6 +189,7 @@ class TeacherClassContextHelper {
     List<TermModel> terms, {
     User? user,
     DateTime? now,
+    bool sharedAcrossPeriods = false,
   }) {
     final scoped = horarios.where((horario) {
       final belongsToTeacher = isPrivilegedUser(user) ||
@@ -199,6 +201,15 @@ class TeacherClassContextHelper {
     if (scoped.isEmpty || terms.isEmpty) return scoped;
 
     final currentTerm = getCurrentTerm(terms, now: now);
+    if (sharedAcrossPeriods) {
+      return _sharedSchedulesByClass(
+        scoped,
+        terms,
+        currentTerm: currentTerm,
+        now: now,
+      );
+    }
+
     if (currentTerm != null) {
       final currentSchedules = scoped
           .where((horario) => matchesEffectiveTerm(horario, currentTerm))
@@ -225,8 +236,15 @@ class TeacherClassContextHelper {
     List<TermModel> terms, {
     User? user,
     DateTime? now,
+    bool sharedAcrossPeriods = false,
   }) {
-    return assignedHorarios(horarios, terms, user: user, now: now);
+    return assignedHorarios(
+      horarios,
+      terms,
+      user: user,
+      now: now,
+      sharedAcrossPeriods: sharedAcrossPeriods,
+    );
   }
 
   static List<ClassModel> getAvailableClasses({
@@ -234,6 +252,7 @@ class TeacherClassContextHelper {
     required List<HorarioModel> horarios,
     required User? user,
     List<TermModel> terms = const [],
+    bool sharedAcrossPeriods = false,
   }) {
     if (user == null) return const [];
 
@@ -241,6 +260,7 @@ class TeacherClassContextHelper {
       horarios,
       terms,
       user: user,
+      sharedAcrossPeriods: sharedAcrossPeriods,
     );
     final classById = <String, ClassModel>{
       for (final classData in classes)
@@ -298,12 +318,14 @@ class TeacherClassContextHelper {
     required List<HorarioModel> horarios,
     required User? user,
     List<TermModel> terms = const [],
+    bool sharedAcrossPeriods = false,
   }) {
     final availableClasses = getAvailableClasses(
       classes: classes,
       horarios: horarios,
       user: user,
       terms: terms,
+      sharedAcrossPeriods: sharedAcrossPeriods,
     );
 
     if (availableClasses.isEmpty) {
@@ -318,8 +340,12 @@ class TeacherClassContextHelper {
       }
     }
 
-    final relevantSchedules =
-        relevantHorarios(horarios, terms, user: user).where((horario) {
+    final relevantSchedules = relevantHorarios(
+      horarios,
+      terms,
+      user: user,
+      sharedAcrossPeriods: sharedAcrossPeriods,
+    ).where((horario) {
       final classId = horario.classId;
       final belongsToTeacher =
           isPrivilegedUser(user) || horario.teacherId == (user?.id ?? '');
@@ -348,12 +374,14 @@ class TeacherClassContextHelper {
     required List<HorarioModel> horarios,
     required User? user,
     List<TermModel> terms = const [],
+    bool sharedAcrossPeriods = false,
   }) {
     final available = getAvailableClasses(
       classes: classes,
       horarios: horarios,
       user: user,
       terms: terms,
+      sharedAcrossPeriods: sharedAcrossPeriods,
     );
 
     final suggestion = resolveSuggestedClass(
@@ -361,6 +389,7 @@ class TeacherClassContextHelper {
       horarios: horarios,
       user: user,
       terms: terms,
+      sharedAcrossPeriods: sharedAcrossPeriods,
     );
 
     if (suggestion == null) {
@@ -384,9 +413,14 @@ class TeacherClassContextHelper {
     required List<HorarioModel> horarios,
     required User? user,
     List<TermModel> terms = const [],
+    bool sharedAcrossPeriods = false,
   }) {
-    final relevant =
-        relevantHorarios(horarios, terms, user: user).where((horario) {
+    final relevant = relevantHorarios(
+      horarios,
+      terms,
+      user: user,
+      sharedAcrossPeriods: sharedAcrossPeriods,
+    ).where((horario) {
       final sameClass = horario.classId == classId;
       final belongsToTeacher =
           isPrivilegedUser(user) || horario.teacherId == (user?.id ?? '');
@@ -409,9 +443,14 @@ class TeacherClassContextHelper {
     required List<HorarioModel> horarios,
     required User? user,
     List<TermModel> terms = const [],
+    bool sharedAcrossPeriods = false,
   }) {
-    final relevant =
-        relevantHorarios(horarios, terms, user: user).where((horario) {
+    final relevant = relevantHorarios(
+      horarios,
+      terms,
+      user: user,
+      sharedAcrossPeriods: sharedAcrossPeriods,
+    ).where((horario) {
       final sameClass = horario.classId == classId;
       final belongsToTeacher =
           isPrivilegedUser(user) || horario.teacherId == (user?.id ?? '');
@@ -427,16 +466,7 @@ class TeacherClassContextHelper {
     required String? schoolId,
     required TermModel? currentTerm,
     TermModel? referenceTerm,
-  }) {
-    if (!kDebugMode) return;
-    debugPrint('[TeacherMobile][Context] '
-        'teacherId=${teacherId ?? '-'} '
-        'schoolId=${schoolId ?? '-'} '
-        'currentTermId=${currentTerm?.id ?? '-'} '
-        'referenceTermId=${referenceTerm?.id ?? '-'} '
-        'baseUrl=${ApiConfig.apiUrl} '
-        'screen=$screen');
-  }
+  }) {}
 
   static List<TermModel> _referenceTermCandidates(
     List<TermModel> terms, {
@@ -465,6 +495,50 @@ class TeacherClassContextHelper {
     return <TermModel>[...ended, ...upcoming, ...remaining];
   }
 
+  static List<HorarioModel> _sharedSchedulesByClass(
+    List<HorarioModel> scoped,
+    List<TermModel> terms, {
+    required TermModel? currentTerm,
+    DateTime? now,
+  }) {
+    final prioritizedTerms = <TermModel>[
+      if (currentTerm != null) currentTerm,
+      ..._referenceTermCandidates(
+        terms,
+        now: now,
+        currentTerm: currentTerm,
+      ),
+    ];
+    final schedulesByClass = <String, List<HorarioModel>>{};
+    for (final horario in scoped) {
+      if (horario.classId.isEmpty) continue;
+      schedulesByClass.putIfAbsent(horario.classId, () => []).add(horario);
+    }
+
+    final resolved = <HorarioModel>[];
+    for (final classSchedules in schedulesByClass.values) {
+      List<HorarioModel> selected = const [];
+      for (final term in prioritizedTerms) {
+        final candidates = classSchedules
+            .where((horario) => matchesEffectiveTerm(horario, term))
+            .toList();
+        if (candidates.isNotEmpty) {
+          selected = candidates;
+          break;
+        }
+      }
+
+      if (selected.isEmpty) {
+        // Compatibilidade com grades legadas sem periodo ou com um periodo
+        // ainda ausente na lista do ano letivo carregada pelo aplicativo.
+        selected = classSchedules;
+      }
+      resolved.addAll(selected);
+    }
+
+    return resolved;
+  }
+
   static bool _belongsToUserSchool(HorarioModel horario, User? user) {
     final expectedSchoolId = user?.schoolId.trim() ?? '';
     if (expectedSchoolId.isEmpty) return true;
@@ -486,17 +560,6 @@ class TeacherClassContextHelper {
     required List<HorarioModel> after,
     required TermModel currentTerm,
   }) {
-    if (!kDebugMode) return after;
-    final keptIds = after.map((item) => item.id).toSet();
-    final excluded = before.where((item) => !keptIds.contains(item.id));
-    final termMismatchCount = excluded
-        .where((item) => !matchesEffectiveTerm(item, currentTerm))
-        .length;
-    debugPrint('[TeacherMobile][HorariosFiltered] '
-        'screen=$screen currentTermId=${currentTerm.id} '
-        'before=${before.length} after=${after.length} '
-        'termMismatch=$termMismatchCount '
-        'teacherOrSchoolMismatch=${before.length - after.length - termMismatchCount}');
     return after;
   }
 
@@ -505,27 +568,13 @@ class TeacherClassContextHelper {
     required TermModel? currentTerm,
     required List<ClassModel> classes,
     required List<HorarioModel> horarios,
-  }) {
-    if (!kDebugMode) return;
-    debugPrint('[TeacherMobile][ClassesResolved] '
-        'screen=$screen '
-        'currentTermId=${currentTerm?.id ?? '-'} '
-        'totalHorariosAfterTeacherFilter=${horarios.length} '
-        'totalClasses=${classes.length} '
-        'uniqueClassIds=${classes.map((item) => item.id).toSet().length}');
-  }
+  }) {}
 
   static void logAttendanceClasses({
     required TermModel? currentTerm,
     required List<ClassModel> classes,
     required List<HorarioModel> horarios,
-  }) {
-    if (!kDebugMode) return;
-    debugPrint('[TeacherMobile][AttendanceClasses] '
-        'currentTermId=${currentTerm?.id ?? '-'} '
-        'availableClassesCount=${classes.length} '
-        'totalHorariosAfterTeacherFilter=${horarios.length}');
-  }
+  }) {}
 
   static void logScreenResult({
     required String screen,
@@ -533,15 +582,7 @@ class TeacherClassContextHelper {
     required int totalVisibleClasses,
     required int totalVisibleSchedules,
     required bool emptyStateShown,
-  }) {
-    if (!kDebugMode) return;
-    debugPrint('[TeacherMobile][ScreenResult] '
-        'screen=$screen '
-        'isLoading=$isLoading '
-        'totalVisibleClasses=$totalVisibleClasses '
-        'totalVisibleSchedules=$totalVisibleSchedules '
-        'emptyStateShown=$emptyStateShown');
-  }
+  }) {}
 
   static HorarioModel? _resolvePreferredSchedule(List<HorarioModel> horarios) {
     if (horarios.isEmpty) return null;

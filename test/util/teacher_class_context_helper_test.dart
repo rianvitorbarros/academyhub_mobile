@@ -115,6 +115,149 @@ void main() {
   });
 
   group('isolamento e deduplicação dos vínculos', () {
+    test('boletim mantém dez turmas quando só uma tem horário no período atual',
+        () {
+      final previousSchedules = List.generate(
+        10,
+        (index) => _schedule(
+          id: 'previous-$index',
+          termId: previousTerm.id,
+          classId: 'class-$index',
+        ),
+      );
+      final currentSchedule = _schedule(
+        id: 'current',
+        termId: currentTerm.id,
+        classId: 'class-0',
+      );
+      final schedules = [...previousSchedules, currentSchedule];
+      final classes = List.generate(10, (index) => _class(id: 'class-$index'));
+
+      final periodOnly = TeacherClassContextHelper.getAvailableClasses(
+        classes: classes,
+        horarios: schedules,
+        user: teacher,
+        terms: [previousTerm, currentTerm],
+      );
+      final reportCardOptions = TeacherClassContextHelper.getAvailableClasses(
+        classes: classes,
+        horarios: schedules,
+        user: teacher,
+        terms: [previousTerm, currentTerm],
+        sharedAcrossPeriods: true,
+      );
+
+      expect(periodOnly, hasLength(1));
+      expect(reportCardOptions.map((item) => item.id).toSet(), hasLength(10));
+    });
+    test(
+        'modo compartilhado preserva sete turmas quando o período atual tem duas',
+        () {
+      final previousSchedules = List.generate(
+        7,
+        (index) => _schedule(
+          id: 'previous-${index + 1}',
+          termId: previousTerm.id,
+          classId: 'class-${index + 1}',
+        ),
+      );
+      final currentSchedules = [
+        _schedule(
+          id: 'current-1',
+          termId: currentTerm.id,
+          classId: 'class-1',
+        ),
+        _schedule(
+          id: 'current-2',
+          termId: currentTerm.id,
+          classId: 'class-2',
+        ),
+      ];
+
+      final assigned = TeacherClassContextHelper.assignedHorarios(
+        [...previousSchedules, ...currentSchedules],
+        [previousTerm, currentTerm],
+        user: teacher,
+        now: today,
+        sharedAcrossPeriods: true,
+      );
+      final classes = TeacherClassContextHelper.getAvailableClasses(
+        classes: List.generate(7, (index) => _class(id: 'class-${index + 1}')),
+        horarios: [...previousSchedules, ...currentSchedules],
+        user: teacher,
+        terms: [previousTerm, currentTerm],
+        sharedAcrossPeriods: true,
+      );
+
+      expect(assigned.map((item) => item.classId).toSet(), hasLength(7));
+      expect(classes, hasLength(7));
+    });
+
+    test('modo compartilhado preserva várias matérias sem duplicar a turma',
+        () {
+      final schedules = [
+        _schedule(
+          id: 'math',
+          termId: previousTerm.id,
+          classId: 'class-1',
+          subjectId: 'subject-math',
+        ),
+        _schedule(
+          id: 'science',
+          termId: previousTerm.id,
+          classId: 'class-1',
+          subjectId: 'subject-science',
+        ),
+      ];
+
+      final classes = TeacherClassContextHelper.getAvailableClasses(
+        classes: [_class(id: 'class-1')],
+        horarios: schedules,
+        user: teacher,
+        terms: [previousTerm],
+        sharedAcrossPeriods: true,
+      );
+      final subjects = TeacherClassContextHelper.subjectsForClass(
+        classId: 'class-1',
+        horarios: schedules,
+        user: teacher,
+        terms: [previousTerm],
+        sharedAcrossPeriods: true,
+      );
+
+      expect(classes, hasLength(1));
+      expect(subjects.map((item) => item.id).toSet(),
+          {'subject-math', 'subject-science'});
+    });
+
+    test('modo compartilhado continua isolando escola e professor', () {
+      final schedules = [
+        _schedule(id: 'mine', termId: previousTerm.id),
+        _schedule(
+          id: 'other-teacher',
+          termId: previousTerm.id,
+          teacherId: 'teacher-2',
+          classId: 'class-2',
+        ),
+        _schedule(
+          id: 'other-school',
+          termId: previousTerm.id,
+          schoolId: 'school-2',
+          classId: 'class-3',
+        ),
+      ];
+
+      final assigned = TeacherClassContextHelper.assignedHorarios(
+        schedules,
+        [previousTerm],
+        user: teacher,
+        now: today,
+        sharedAcrossPeriods: true,
+      );
+
+      expect(assigned.map((item) => item.id), ['mine']);
+    });
+
     test('não inclui horários de outro professor', () {
       final mine = _schedule(id: 'mine', termId: previousTerm.id);
       final other = _schedule(
@@ -260,6 +403,7 @@ HorarioModel _schedule({
   String teacherId = 'teacher-1',
   String schoolId = 'school-1',
   String classId = 'class-1',
+  String subjectId = 'subject-1',
 }) {
   return HorarioModel(
     id: id,
@@ -274,7 +418,7 @@ HorarioModel _schedule({
       schoolId: schoolId,
     ),
     subject: SubjectModel(
-      id: 'subject-1',
+      id: subjectId,
       name: 'Disciplina',
       level: 'Fundamental',
       schoolId: schoolId,
