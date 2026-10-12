@@ -28,6 +28,7 @@ import 'package:academyhub_mobile/providers/guardian_official_documents_provider
 import '../services/navigation_service.dart';
 import '../services/auth_session_manager.dart';
 import '../services/offline_attendance_store.dart';
+import '../services/performance_trace.dart';
 
 // [NOVO] Imports para a navegação global forçada
 // import '../screens/auth/login_screen.dart'; // Ajuste este caminho para a sua tela de Login real
@@ -178,13 +179,15 @@ class AuthProvider with ChangeNotifier {
       if (identifier.contains('@')) {
         debugPrint(
             '👨‍🏫 [AuthProvider] E-mail detectado. Roteando para fluxo de Staff.');
-        response = await _authService.login(identifier, password);
+        response = await PerformanceTrace.measure(
+            'auth.staff.api', () => _authService.login(identifier, password));
         rawUser = response['user'];
       } else {
         debugPrint(
             '🎓 [AuthProvider] Sem arroba. Tentando fluxo de Aluno/Matrícula...');
         try {
-          response = await _authStudentService.login(identifier, password);
+          response = await PerformanceTrace.measure('auth.student.api',
+              () => _authStudentService.login(identifier, password));
 
           final studentData = response['student'];
           rawUser = {
@@ -204,7 +207,8 @@ class AuthProvider with ChangeNotifier {
               errorMsg.contains('incorreta')) {
             debugPrint(
                 '🔄 [AuthProvider] Não é aluno. Tentando como Username de Staff...');
-            response = await _authService.login(identifier, password);
+            response = await PerformanceTrace.measure('auth.staff_fallback.api',
+                () => _authService.login(identifier, password));
             rawUser = response['user'];
           } else {
             rethrow;
@@ -239,10 +243,12 @@ class AuthProvider with ChangeNotifier {
       _sessionPrincipal = isStudent ? 'student' : 'staff';
 
       debugPrint('✅ [AuthProvider] Login bem-sucedido! Objeto User criado.');
-      await AuthSessionManager.instance.saveLogin(response);
+      await PerformanceTrace.measure('session.save_tokens',
+          () => AuthSessionManager.instance.saveLogin(response));
       OfflineAttendanceStore.instance
           .activate(userId: _user!.id, schoolId: _user!.schoolId);
-      await _persistStandardSession(rawUser);
+      await PerformanceTrace.measure(
+          'session.persist_standard', () => _persistStandardSession(rawUser));
       _scheduleRefresh();
       debugPrint(
           '💾 [AuthProvider] Token e usuário salvos no SharedPreferences.');
@@ -447,8 +453,11 @@ class AuthProvider with ChangeNotifier {
 
   Future<bool> tryAutoLogin(BuildContext context) async {
     debugPrint('--- [AuthProvider] Tentando auto-login... ---');
-    final prefs = await SharedPreferences.getInstance();
-    await AuthSessionManager.instance.restore();
+    PerformanceTrace.mark('session.restore.begin');
+    final prefs = await PerformanceTrace.measure(
+        'session.preferences', SharedPreferences.getInstance);
+    await PerformanceTrace.measure(
+        'session.restore_tokens', AuthSessionManager.instance.restore);
 
     if (!prefs.containsKey(_authTokenKey)) {
       debugPrint(
@@ -480,6 +489,7 @@ class AuthProvider with ChangeNotifier {
         notifyListeners();
         debugPrint(
             '✅ [AuthProvider] Auto-login de responsavel restaurado com sucesso.');
+        PerformanceTrace.mark('session.restore.ready');
         return true;
       } catch (e) {
         debugPrint(
@@ -513,7 +523,8 @@ class AuthProvider with ChangeNotifier {
         if (_sessionPrincipal == 'staff' &&
             await AuthSessionManager.instance.hasRefreshToken()) {
           try {
-            _token = await AuthSessionManager.instance.refresh();
+            _token = await PerformanceTrace.measure(
+                'session.refresh_api', AuthSessionManager.instance.refresh);
           } on SessionRefreshException catch (error) {
             if (error.sessionInvalid) return false;
             // Sem internet: mantem a conta restaurada para os dados offline.
@@ -537,6 +548,7 @@ class AuthProvider with ChangeNotifier {
             }
           }
         }
+        PerformanceTrace.mark('session.restore.ready');
         return true;
       } catch (e) {
         debugPrint(
@@ -670,10 +682,13 @@ class AuthProvider with ChangeNotifier {
   }) async {
     try {
       final previousSelectedStudentId = _guardianSession?.selectedStudentId;
-      final result = await _guardianAuthService.loginGuardian(
-        schoolPublicId: schoolPublicId,
-        cpf: cpf,
-        pin: pin,
+      final result = await PerformanceTrace.measure(
+        'auth.guardian.api',
+        () => _guardianAuthService.loginGuardian(
+          schoolPublicId: schoolPublicId,
+          cpf: cpf,
+          pin: pin,
+        ),
       );
 
       if (!result.isAuthenticated || result.session == null) {
@@ -691,7 +706,8 @@ class AuthProvider with ChangeNotifier {
       _token = resolvedSession.token;
       _sessionPrincipal = 'guardian';
 
-      await _persistGuardianSession();
+      await PerformanceTrace.measure(
+          'session.persist_guardian', _persistGuardianSession);
 
       notifyListeners();
       return result;

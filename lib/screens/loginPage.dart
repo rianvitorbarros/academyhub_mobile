@@ -1,6 +1,7 @@
 import 'package:academyhub_mobile/model/guardian_auth_model.dart';
 import 'package:academyhub_mobile/screens/guardian_pin_recovery_sheet.dart';
 import 'package:academyhub_mobile/providers/auth_provider.dart';
+import 'package:academyhub_mobile/services/performance_trace.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_phosphor_icons/flutter_phosphor_icons.dart';
@@ -44,6 +45,7 @@ class _LoginpageState extends State<Loginpage> {
   bool _isGuardianPinVisible = false;
   bool _isLoading = false;
   bool _isScreenReady = false;
+  bool _preloadStarted = false;
   _LoginMode _loginMode = _LoginMode.standard;
 
   @override
@@ -60,18 +62,21 @@ class _LoginpageState extends State<Loginpage> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (!_isScreenReady) {
+    if (!_preloadStarted) {
+      _preloadStarted = true;
       _preloadAssets();
     }
   }
 
   Future<void> _preloadAssets() async {
     try {
-      await precacheImage(
-        const AssetImage('lib/assets/imagem_de_login.jpg'),
-        context,
+      await PerformanceTrace.measure(
+        'login.image_decode',
+        () => precacheImage(
+          const AssetImage('lib/assets/imagem_de_login.jpg'),
+          context,
+        ),
       );
-      await Future.delayed(const Duration(milliseconds: 600));
     } catch (e) {
       debugPrint('Erro ao carregar imagem de login: $e');
     }
@@ -79,6 +84,9 @@ class _LoginpageState extends State<Loginpage> {
     if (mounted) {
       setState(() {
         _isScreenReady = true;
+      });
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) PerformanceTrace.mark('login.form_first_frame');
       });
     }
   }
@@ -213,16 +221,20 @@ class _LoginpageState extends State<Loginpage> {
     }
 
     setState(() => _isLoading = true);
+    PerformanceTrace.mark('auth.standard.tap');
     await _showLoadingDialog('Validando acesso...');
 
     try {
       if (!mounted) return;
       final authProvider = context.read<AuthProvider>();
 
-      await authProvider.login(
-        _identifierController.text.trim(),
-        _passwordController.text,
-        context,
+      await PerformanceTrace.measure(
+        'auth.standard.provider',
+        () => authProvider.login(
+          _identifierController.text.trim(),
+          _passwordController.text,
+          context,
+        ),
       );
 
       if (!mounted) return;
@@ -268,16 +280,20 @@ class _LoginpageState extends State<Loginpage> {
     final pin = _guardianPinController.text.trim();
 
     setState(() => _isLoading = true);
+    PerformanceTrace.mark('auth.guardian.tap');
     await _showLoadingDialog('Entrando como responsável...');
 
     try {
       if (!mounted) return;
       final authProvider = context.read<AuthProvider>();
 
-      final result = await authProvider.loginGuardian(
-        schoolPublicId: schoolPublicId,
-        cpf: cpf,
-        pin: pin,
+      final result = await PerformanceTrace.measure(
+        'auth.guardian.provider',
+        () => authProvider.loginGuardian(
+          schoolPublicId: schoolPublicId,
+          cpf: cpf,
+          pin: pin,
+        ),
       );
 
       if (!mounted) return;
