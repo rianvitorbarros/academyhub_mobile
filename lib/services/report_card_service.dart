@@ -114,9 +114,9 @@ class ReportCardService {
       'observation': observation,
     };
     if (score != null) bodyData['score'] = score;
-    if (testScore != null) bodyData['testScore'] = testScore;
-    if (activityScore != null) bodyData['activityScore'] = activityScore;
-    if (participationScore != null) {
+    if (score == null) {
+      bodyData['testScore'] = testScore;
+      bodyData['activityScore'] = activityScore;
       bodyData['participationScore'] = participationScore;
     }
 

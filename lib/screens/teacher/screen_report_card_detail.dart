@@ -2,6 +2,7 @@ import 'package:academyhub_mobile/model/report_card_model.dart';
 import 'package:academyhub_mobile/providers/auth_provider.dart';
 import 'package:academyhub_mobile/providers/report_card_provider.dart';
 import 'package:academyhub_mobile/util/early_childhood_criteria_helper.dart';
+import 'package:academyhub_mobile/util/report_card_score_input.dart';
 import 'package:academyhub_mobile/widgets/report_card_operation_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_phosphor_icons/flutter_phosphor_icons.dart';
@@ -195,12 +196,12 @@ class _ScreenReportCardDetailState extends State<ScreenReportCardDetail> {
       return;
     }
 
-    final testCtrl = TextEditingController(
-        text: subject.testScore?.toStringAsFixed(1) ?? '');
-    final actCtrl = TextEditingController(
-        text: subject.activityScore?.toStringAsFixed(1) ?? '');
+    final testCtrl =
+        TextEditingController(text: subject.testScore?.toString() ?? '');
+    final actCtrl =
+        TextEditingController(text: subject.activityScore?.toString() ?? '');
     final partCtrl = TextEditingController(
-        text: subject.participationScore?.toStringAsFixed(1) ?? '');
+        text: subject.participationScore?.toString() ?? '');
 
     final observationController =
         TextEditingController(text: subject.observation);
@@ -315,17 +316,23 @@ class _ScreenReportCardDetailState extends State<ScreenReportCardDetail> {
                       ),
                     ),
                     onPressed: () async {
-                      final t = double.tryParse(
-                              testCtrl.text.trim().replaceAll(',', '.')) ??
-                          0;
-                      final a = double.tryParse(
-                              actCtrl.text.trim().replaceAll(',', '.')) ??
-                          0;
-                      final part = double.tryParse(
-                              partCtrl.text.trim().replaceAll(',', '.')) ??
-                          0;
-
-                      final total = t + a + part;
+                      double? t;
+                      double? a;
+                      double? part;
+                      try {
+                        t = parseReportCardScore(testCtrl.text, 'Prova');
+                        a = parseReportCardScore(actCtrl.text, 'Atividade');
+                        part =
+                            parseReportCardScore(partCtrl.text, 'Participação');
+                      } on FormatException catch (error) {
+                        _message(error.message);
+                        return;
+                      }
+                      if (t == null && a == null && part == null) {
+                        _message('Informe ao menos uma nota.');
+                        return;
+                      }
+                      final total = (t ?? 0) + (a ?? 0) + (part ?? 0);
 
                       if (total > 10) {
                         _message(
@@ -336,10 +343,9 @@ class _ScreenReportCardDetailState extends State<ScreenReportCardDetail> {
                       Navigator.pop(dialogContext);
                       await _saveSubject(
                         subject,
-                        testScore: testCtrl.text.isNotEmpty ? t : null,
-                        activityScore: actCtrl.text.isNotEmpty ? a : null,
-                        participationScore:
-                            partCtrl.text.isNotEmpty ? part : null,
+                        testScore: t,
+                        activityScore: a,
+                        participationScore: part,
                         observation: observationController.text.trim(),
                       );
                     },

@@ -5,6 +5,7 @@ import 'package:academyhub_mobile/providers/academic_calendar_provider.dart';
 import 'package:academyhub_mobile/providers/auth_provider.dart';
 import 'package:academyhub_mobile/providers/class_provider.dart';
 import 'package:academyhub_mobile/providers/report_card_provider.dart';
+import 'package:academyhub_mobile/util/report_card_score_input.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_phosphor_icons/flutter_phosphor_icons.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -159,7 +160,8 @@ class _PhysicalEducationGradeScreenState
   }) async {
     final token = context.read<AuthProvider>().token;
     if (token == null) return;
-    final total = (testScore ?? 0) + (activityScore ?? 0) + (participationScore ?? 0);
+    final total =
+        (testScore ?? 0) + (activityScore ?? 0) + (participationScore ?? 0);
     if (total > 10) {
       _message('A média prevista ultrapassa 10 pontos.', error: true);
       return;
@@ -206,8 +208,9 @@ class _PhysicalEducationGradeScreenState
   @override
   Widget build(BuildContext context) {
     final p = _PePalette(Theme.of(context).brightness == Brightness.dark);
-    final selectedCard =
-        _cards.isNotEmpty ? _cards[_selectedIndex.clamp(0, _cards.length - 1)] : null;
+    final selectedCard = _cards.isNotEmpty
+        ? _cards[_selectedIndex.clamp(0, _cards.length - 1)]
+        : null;
     final selectedSubject =
         selectedCard == null ? null : _physicalSubject(selectedCard);
 
@@ -429,12 +432,12 @@ class _PhysicalStudentEditorState extends State<_PhysicalStudentEditor> {
   @override
   void initState() {
     super.initState();
-    _testCtrl = TextEditingController(
-        text: widget.subject.testScore?.toStringAsFixed(1) ?? '');
+    _testCtrl =
+        TextEditingController(text: widget.subject.testScore?.toString() ?? '');
     _activityCtrl = TextEditingController(
-        text: widget.subject.activityScore?.toStringAsFixed(1) ?? '');
+        text: widget.subject.activityScore?.toString() ?? '');
     _participationCtrl = TextEditingController(
-        text: widget.subject.participationScore?.toStringAsFixed(1) ?? '');
+        text: widget.subject.participationScore?.toString() ?? '');
     _observationCtrl = TextEditingController(text: widget.subject.observation);
     final obs = widget.subject.observation.toLowerCase();
     if (obs.contains('[dispensado]') || obs.contains('[atestado]')) {
@@ -465,6 +468,31 @@ class _PhysicalStudentEditorState extends State<_PhysicalStudentEditor> {
       (_parse(_participationCtrl) ?? 0);
 
   Future<void> _save() async {
+    double? testScore;
+    double? activityScore;
+    double? participationScore;
+    try {
+      testScore = _attendanceState == 'avaliado'
+          ? parseReportCardScore(_testCtrl.text, 'Prova')
+          : widget.subject.testScore;
+      activityScore = _attendanceState == 'avaliado'
+          ? parseReportCardScore(_activityCtrl.text, 'Atividade')
+          : widget.subject.activityScore;
+      participationScore = _attendanceState == 'avaliado'
+          ? parseReportCardScore(_participationCtrl.text, 'Participação')
+          : widget.subject.participationScore;
+    } on FormatException catch (error) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(error.message)));
+      return;
+    }
+    if (testScore == null &&
+        activityScore == null &&
+        participationScore == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Informe ao menos uma nota.')));
+      return;
+    }
     var observation = _observationCtrl.text.trim();
     if (_attendanceState == 'ausente') {
       observation = '[ausente] $observation'.trim();
@@ -472,12 +500,9 @@ class _PhysicalStudentEditorState extends State<_PhysicalStudentEditor> {
       observation = '[dispensado/atestado] $observation'.trim();
     }
     await widget.onSave(
-      testScore: _attendanceState == 'avaliado' ? _parse(_testCtrl) : widget.subject.testScore,
-      activityScore:
-          _attendanceState == 'avaliado' ? _parse(_activityCtrl) : widget.subject.activityScore,
-      participationScore: _attendanceState == 'avaliado'
-          ? _parse(_participationCtrl)
-          : widget.subject.participationScore,
+      testScore: testScore,
+      activityScore: activityScore,
+      participationScore: participationScore,
       observation: observation,
     );
   }
@@ -497,7 +522,9 @@ class _PhysicalStudentEditorState extends State<_PhysicalStudentEditor> {
         children: [
           Text(widget.studentName,
               style: GoogleFonts.inter(
-                  fontSize: 18.sp, fontWeight: FontWeight.w900, color: p.title)),
+                  fontSize: 18.sp,
+                  fontWeight: FontWeight.w900,
+                  color: p.title)),
           SizedBox(height: 12.h),
           SegmentedButton<String>(
             selected: {_attendanceState},
@@ -510,11 +537,20 @@ class _PhysicalStudentEditorState extends State<_PhysicalStudentEditor> {
             ],
           ),
           SizedBox(height: 12.h),
-          _PeInput(controller: _testCtrl, label: 'Prova prática/teórica', palette: p),
+          _PeInput(
+              controller: _testCtrl,
+              label: 'Prova prática/teórica',
+              palette: p),
           SizedBox(height: 10.h),
-          _PeInput(controller: _activityCtrl, label: 'Atividade / execução prática', palette: p),
+          _PeInput(
+              controller: _activityCtrl,
+              label: 'Atividade / execução prática',
+              palette: p),
           SizedBox(height: 10.h),
-          _PeInput(controller: _participationCtrl, label: 'Participação / cooperação', palette: p),
+          _PeInput(
+              controller: _participationCtrl,
+              label: 'Participação / cooperação',
+              palette: p),
           SizedBox(height: 10.h),
           _PeInput(
             controller: _observationCtrl,
@@ -527,7 +563,9 @@ class _PhysicalStudentEditorState extends State<_PhysicalStudentEditor> {
           Container(
             padding: EdgeInsets.all(12.w),
             decoration: BoxDecoration(
-              color: _predicted > 10 ? p.red.withOpacity(0.08) : p.green.withOpacity(0.08),
+              color: _predicted > 10
+                  ? p.red.withOpacity(0.08)
+                  : p.green.withOpacity(0.08),
               borderRadius: BorderRadius.circular(12.r),
             ),
             child: Row(
@@ -579,9 +617,11 @@ class _PePalette {
 
   Color get page => isDark ? const Color(0xFF0F1217) : const Color(0xFFF5F7FB);
   Color get surface => isDark ? const Color(0xFF171B22) : Colors.white;
-  Color get border => isDark ? const Color(0xFF2B3038) : const Color(0xFFE5EAF2);
+  Color get border =>
+      isDark ? const Color(0xFF2B3038) : const Color(0xFFE5EAF2);
   Color get title => isDark ? Colors.white : const Color(0xFF172033);
-  Color get subtitle => isDark ? const Color(0xFFA1A9B7) : const Color(0xFF687386);
+  Color get subtitle =>
+      isDark ? const Color(0xFFA1A9B7) : const Color(0xFF687386);
   Color get muted => isDark ? const Color(0xFF7B8494) : const Color(0xFF98A2B3);
   Color get green => const Color(0xFF2DBE60);
   Color get blue => const Color(0xFF2F80ED);
@@ -654,7 +694,8 @@ class _PeInput extends StatelessWidget {
       decoration: InputDecoration(
         labelText: label,
         filled: true,
-        fillColor: palette.isDark ? const Color(0xFF20242C) : const Color(0xFFF8FAFD),
+        fillColor:
+            palette.isDark ? const Color(0xFF20242C) : const Color(0xFFF8FAFD),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12.r),
           borderSide: BorderSide(color: palette.border),
@@ -707,7 +748,8 @@ class _EmptyPeBox extends StatelessWidget {
       ),
       child: Column(
         children: [
-          Icon(PhosphorIcons.person_simple_run, size: 42.sp, color: palette.muted),
+          Icon(PhosphorIcons.person_simple_run,
+              size: 42.sp, color: palette.muted),
           SizedBox(height: 10.h),
           Text(title,
               style: GoogleFonts.inter(
