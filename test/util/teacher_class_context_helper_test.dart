@@ -150,6 +150,52 @@ void main() {
       expect(periodOnly, hasLength(1));
       expect(reportCardOptions.map((item) => item.id).toSet(), hasLength(10));
     });
+    test('aba Turmas preserva dez turmas e o atalho prioriza a turma atual',
+        () {
+      final previousSchedules = List.generate(
+        10,
+        (index) => _schedule(
+          id: 'previous-$index',
+          termId: previousTerm.id,
+          classId: 'class-$index',
+        ),
+      );
+      final currentSchedule = _schedule(
+        id: 'current',
+        termId: currentTerm.id,
+        classId: 'class-0',
+      );
+      final classes = List.generate(10, (index) => _class(id: 'class-$index'));
+      final schedules = [...previousSchedules, currentSchedule];
+
+      final activityClasses =
+          TeacherClassContextHelper.sortClassesForActivities(
+        classes: classes,
+        horarios: schedules,
+        user: teacher,
+        terms: [previousTerm, currentTerm],
+        sharedAcrossPeriods: true,
+      );
+      final studentsClasses = TeacherClassContextHelper.getAvailableClasses(
+        classes: classes,
+        horarios: schedules,
+        user: teacher,
+        terms: [previousTerm, currentTerm],
+        sharedAcrossPeriods: true,
+      );
+      final suggestion = TeacherClassContextHelper.resolveSuggestedClass(
+        classes: classes,
+        horarios: schedules,
+        user: teacher,
+        terms: [previousTerm, currentTerm],
+        sharedAcrossPeriods: true,
+      );
+
+      expect(activityClasses.map((item) => item.id).toSet(), hasLength(10));
+      expect(studentsClasses.map((item) => item.id).toSet(), hasLength(10));
+      expect(activityClasses.first.id, 'class-0');
+      expect(suggestion?.classData.id, 'class-0');
+    });
     test(
         'modo compartilhado preserva sete turmas quando o período atual tem duas',
         () {

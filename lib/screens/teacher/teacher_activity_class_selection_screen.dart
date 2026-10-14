@@ -66,6 +66,7 @@ class _TeacherActivityClassSelectionScreenState
         horarioProvider: context.read<HorarioProvider>(),
         academicProvider: context.read<AcademicCalendarProvider>(),
         forceRefresh: refresh,
+        sharedAcrossPeriods: true,
         screen: 'classes',
       );
     } finally {
@@ -91,6 +92,7 @@ class _TeacherActivityClassSelectionScreenState
       horarioProvider.horarios,
       academicProvider.terms,
       user: user,
+      sharedAcrossPeriods: true,
     );
 
     final availableClasses = TeacherClassContextHelper.sortClassesForActivities(
@@ -98,12 +100,14 @@ class _TeacherActivityClassSelectionScreenState
       horarios: horarioProvider.horarios,
       user: user,
       terms: academicProvider.terms,
+      sharedAcrossPeriods: true,
     );
     final suggestion = TeacherClassContextHelper.resolveSuggestedClass(
       classes: classProvider.classes,
       horarios: horarioProvider.horarios,
       user: user,
       terms: academicProvider.terms,
+      sharedAcrossPeriods: true,
     );
     TeacherClassContextHelper.logClasses(
       screen: 'classes',
@@ -199,6 +203,7 @@ class _TeacherActivityClassSelectionScreenState
                     horarios: horarioProvider.horarios,
                     user: user,
                     terms: academicProvider.terms,
+                    sharedAcrossPeriods: true,
                   );
 
                   return Padding(

@@ -118,6 +118,7 @@ class StudentManagementEntryScreen extends StatelessWidget {
                     horarios: horarioProv.horarios,
                     user: currentUser,
                     terms: academicProv.terms,
+                    sharedAcrossPeriods: true,
                   );
                   final currentTerm = TeacherClassContextHelper.getCurrentTerm(
                     academicProv.terms,
@@ -127,6 +128,7 @@ class StudentManagementEntryScreen extends StatelessWidget {
                     horarioProv.horarios,
                     academicProv.terms,
                     user: currentUser,
+                    sharedAcrossPeriods: true,
                   );
                   TeacherClassContextHelper.logClasses(
                     screen: 'students',
@@ -154,6 +156,7 @@ class StudentManagementEntryScreen extends StatelessWidget {
                           horarioProvider: horarioProv,
                           academicProvider: academicProv,
                           forceRefresh: true,
+                          sharedAcrossPeriods: true,
                           screen: 'students_retry',
                         );
                       },
