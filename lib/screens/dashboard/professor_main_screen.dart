@@ -76,6 +76,7 @@ class _ProfessorMainScreenState extends State<ProfessorMainScreen> {
       horarioProvider: horarioProvider,
       academicProvider: academicProvider,
       forceRefresh: true,
+      sharedAcrossPeriods: true,
       screen: 'professor_bootstrap',
     );
   }
