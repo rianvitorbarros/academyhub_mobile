@@ -2,7 +2,7 @@ name: academyhub_mobile
 description: "A new Flutter project."
 publish_to: 'none'
 
-version: 1.5.12+8
+version: 1.5.13+9
 
 environment:
   sdk: ^3.5.4

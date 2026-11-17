@@ -26,6 +26,9 @@ import 'package:flutter_phosphor_icons/flutter_phosphor_icons.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
+import 'package:academyhub_mobile/model/early_payment_offer_model.dart';
+import 'package:academyhub_mobile/services/early_payment_offer_service.dart';
+import 'package:academyhub_mobile/widgets/early_payment_offer_popup.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -53,6 +56,12 @@ class _GuardianPortalScreenState extends State<GuardianPortalScreen> {
   int _attendanceFocusNonce = 0;
   int _attendanceRefreshNonce = 0;
   bool _hasShownReEnrollmentSheetThisSession = false;
+  final EarlyPaymentOfferService _earlyPaymentService =
+      EarlyPaymentOfferService();
+  List<EarlyPaymentOffer> _earlyOffers = const [];
+  bool _hasShownEarlyOfferThisSession = false;
+  VoidCallback? _removeEarlyOfferOverlay;
+  final Set<String> _earlyOfferJoining = {};
   bool _isSubmittingReEnrollment = false;
   _GuardianFinanceFilter _financeFilter = _GuardianFinanceFilter.priority;
 
@@ -100,6 +109,7 @@ class _GuardianPortalScreenState extends State<GuardianPortalScreen> {
 
   @override
   void dispose() {
+    _removeEarlyOfferOverlay?.call();
     _socketSubscription?.cancel();
     super.dispose();
   }
@@ -267,7 +277,10 @@ class _GuardianPortalScreenState extends State<GuardianPortalScreen> {
       await _loadGuardianDocuments(studentId: _selectedStudentId);
       if ((token ?? '').trim().isNotEmpty) {
         await reEnrollmentProvider.load(token!.trim());
+        // Loaded before the sheet so the offer can appear inside it.
+        await _loadEarlyPaymentOffers(token.trim());
         _showReEnrollmentSheetOnce();
+        unawaited(_maybeShowEarlyOfferPopup());
       }
     } on GuardianSessionExpiredException catch (error) {
       await _expireGuardianSession(error);
@@ -340,6 +353,226 @@ class _GuardianPortalScreenState extends State<GuardianPortalScreen> {
     _hasShownReEnrollmentSheetThisSession = true;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _openReEnrollmentSheet();
+    });
+  }
+
+  static final _offerCurrency =
+      NumberFormat.currency(locale: 'pt_BR', symbol: r'R$');
+
+  String? _offerPriceLine(EarlyPaymentStudentQuote quote,
+      {bool withName = false}) {
+    if (quote.finalAmount == null || quote.originalAmount == null) return null;
+    final name = withName ? '${quote.fullName.split(' ').first}: ' : '';
+    return '$name${_offerCurrency.format(quote.finalAmount)} em vez de ${_offerCurrency.format(quote.originalAmount)}';
+  }
+
+  /// Advance-payment discount offers (e.g. January paid in advance).
+  /// Shown once per session as a discreet floating card, and always
+  /// available inside the re-enrollment sheet.
+  Future<void> _loadEarlyPaymentOffers(String token) async {
+    try {
+      final offers = await _earlyPaymentService
+          .guardianOffers(token)
+          .timeout(const Duration(seconds: 6));
+      if (!mounted) return;
+      setState(() => _earlyOffers =
+          offers.where((o) => o.students.isNotEmpty).toList());
+    } catch (_) {
+      // The offer is optional and must never disturb the portal.
+    }
+  }
+
+  Future<void> _maybeShowEarlyOfferPopup() async {
+    try {
+      if (_earlyOffers.isEmpty || _hasShownEarlyOfferThisSession) return;
+      final offer = _earlyOffers.first;
+      final pending = offer.students.where((s) => !s.joined).toList();
+      if (pending.isEmpty) return;
+      if (!await EarlyPaymentOfferMemory.shouldAutoShow(offer.id)) return;
+      // Wait so it does not compete with the portal loading or the
+      // re-enrollment sheet (which already shows the offer inside it).
+      await Future<void>.delayed(const Duration(seconds: 3));
+      if (!mounted ||
+          _hasShownReEnrollmentSheetThisSession ||
+          ModalRoute.of(context)?.isCurrent != true) {
+        return;
+      }
+      _hasShownEarlyOfferThisSession = true;
+      _removeEarlyOfferOverlay = showEarlyPaymentOfferOverlay(
+        context,
+        offer: offer,
+        priceLine: pending.length == 1
+            ? _offerPriceLine(pending.first, withName: true)
+            : null,
+        acceptLabel: pending.length == 1 ? 'Quero aproveitar' : 'Ver alunos',
+        onAccept: () async {
+          if (pending.length == 1) {
+            return _joinEarlyOffer(offer, pending.first);
+          }
+          _removeEarlyOfferOverlay?.call();
+          _openReEnrollmentSheet();
+          return false;
+        },
+      );
+    } catch (_) {
+      // The offer is optional and must never disturb the portal.
+    }
+  }
+
+  Future<bool> _joinEarlyOffer(
+      EarlyPaymentOffer offer, EarlyPaymentStudentQuote student) async {
+    final token = context.read<AuthProvider>().token;
+    final key = '${offer.id}:${student.studentId}';
+    if ((token ?? '').trim().isEmpty || _earlyOfferJoining.contains(key)) {
+      return false;
+    }
+    setState(() => _earlyOfferJoining.add(key));
+    try {
+      await _earlyPaymentService.guardianAdhesion(
+          token!.trim(), offer.id, student.studentId);
+      if (!mounted) return true;
+      setState(() {
+        _earlyOffers = _earlyOffers
+            .map((o) => o.id != offer.id
+                ? o
+                : EarlyPaymentOffer(
+                    id: o.id,
+                    title: o.title,
+                    description: o.description,
+                    discountType: o.discountType,
+                    referenceLabel: o.referenceLabel,
+                    discountLabel: o.discountLabel,
+                    audience: o.audience,
+                    academicYear: o.academicYear,
+                    referenceMonth: o.referenceMonth,
+                    discountValue: o.discountValue,
+                    endDate: o.endDate,
+                    paymentDeadline: o.paymentDeadline,
+                    students: o.students
+                        .map((s) => s.studentId != student.studentId
+                            ? s
+                            : EarlyPaymentStudentQuote(
+                                studentId: s.studentId,
+                                fullName: s.fullName,
+                                originalAmount: s.originalAmount,
+                                discountAmount: s.discountAmount,
+                                finalAmount: s.finalAmount,
+                                joined: true))
+                        .toList()))
+            .toList();
+      });
+      return true;
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text('$error'.replaceFirst('Exception: ', ''))));
+      }
+      return false;
+    } finally {
+      if (mounted) setState(() => _earlyOfferJoining.remove(key));
+    }
+  }
+
+  Widget _buildEarlyOfferSheetCard(BuildContext sheetContext) {
+    final offer = _earlyOffers.first;
+    final muted = _guardianTextSecondary(sheetContext);
+    return StatefulBuilder(builder: (context, setSheet) {
+      final current = _earlyOffers.firstWhere((o) => o.id == offer.id,
+          orElse: () => offer);
+      return Container(
+        padding: EdgeInsets.all(14.w),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF5A524).withValues(alpha: .10),
+          borderRadius: BorderRadius.circular(18.r),
+          border: Border.all(color: const Color(0xFFF5A524).withValues(alpha: .45)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(children: [
+              Icon(Icons.card_giftcard_rounded,
+                  color: const Color(0xFFB86E00), size: 22.sp),
+              SizedBox(width: 8.w),
+              Expanded(
+                child: Text(current.title,
+                    style: GoogleFonts.inter(
+                        fontSize: 14.sp, fontWeight: FontWeight.w800)),
+              ),
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 3.h),
+                decoration: BoxDecoration(
+                    color: const Color(0xFFF5A524),
+                    borderRadius: BorderRadius.circular(20.r)),
+                child: Text(current.shortDiscount,
+                    style: GoogleFonts.inter(
+                        fontSize: 11.sp, fontWeight: FontWeight.w800)),
+              ),
+            ]),
+            SizedBox(height: 4.h),
+            Text(
+                current.description.isNotEmpty
+                    ? current.description
+                    : '${current.discountLabel} pagando a mensalidade de ${current.referenceLabel} antecipada ${earlyPaymentDeadlineText(current)}.',
+                style: GoogleFonts.inter(
+                    fontSize: 12.sp, height: 1.35, color: muted)),
+            SizedBox(height: 8.h),
+            ...current.students.map((student) {
+              final key = '${current.id}:${student.studentId}';
+              final busy = _earlyOfferJoining.contains(key);
+              final price = _offerPriceLine(student);
+              return Padding(
+                padding: EdgeInsets.only(top: 6.h),
+                child: Row(children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(student.fullName,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: GoogleFonts.inter(
+                                fontSize: 13.sp, fontWeight: FontWeight.w700)),
+                        if (price != null)
+                          Text(price,
+                              style: GoogleFonts.inter(
+                                  fontSize: 11.5.sp,
+                                  color: const Color(0xFFB86E00),
+                                  fontWeight: FontWeight.w600)),
+                      ],
+                    ),
+                  ),
+                  if (student.joined)
+                    Row(mainAxisSize: MainAxisSize.min, children: [
+                      Icon(Icons.check_circle,
+                          color: const Color(0xFF00A859), size: 16.sp),
+                      SizedBox(width: 4.w),
+                      Text('Reservado',
+                          style: GoogleFonts.inter(
+                              fontSize: 12.sp,
+                              fontWeight: FontWeight.w700,
+                              color: const Color(0xFF00A859))),
+                    ])
+                  else
+                    FilledButton(
+                      onPressed: busy
+                          ? null
+                          : () async {
+                              setSheet(() {});
+                              await _joinEarlyOffer(current, student);
+                              if (sheetContext.mounted) setSheet(() {});
+                            },
+                      style: FilledButton.styleFrom(
+                          backgroundColor: const Color(0xFFF5A524),
+                          foregroundColor: Colors.black,
+                          visualDensity: VisualDensity.compact),
+                      child: Text(busy ? '...' : 'Quero'),
+                    ),
+                ]),
+              );
+            }),
+          ],
+        ),
+      );
     });
   }
 
@@ -446,10 +679,14 @@ class _GuardianPortalScreenState extends State<GuardianPortalScreen> {
           SizedBox(height: 16.h),
           Expanded(
               child: ListView.separated(
-                  itemCount: items.length,
+                  itemCount: items.length + (_earlyOffers.isEmpty ? 0 : 1),
                   separatorBuilder: (_, __) => SizedBox(height: 10.h),
-                  itemBuilder: (_, index) =>
-                      _buildReEnrollmentItem(sheetContext, items[index]))),
+                  itemBuilder: (_, index) => _earlyOffers.isEmpty
+                      ? _buildReEnrollmentItem(sheetContext, items[index])
+                      : index == 0
+                          ? _buildEarlyOfferSheetCard(sheetContext)
+                          : _buildReEnrollmentItem(
+                              sheetContext, items[index - 1]))),
         ]),
       )),
     );
