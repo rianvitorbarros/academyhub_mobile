@@ -223,13 +223,14 @@ class PublicRegistrationService {
     }
   }
 
-  Future<void> submitRegistrationRequest(Map<String, dynamic> data) async {
+  /// Sends the request and returns its id (used to attach optional offers).
+  Future<String?> submitRegistrationRequest(Map<String, dynamic> data) async {
     if (_visualMockEnabled) {
       // Used only by manual visual validation with --dart-define.
       // ignore: avoid_print
       print('[PublicRegistrationVisualMock] payload=$data');
       await Future<void>.delayed(const Duration(milliseconds: 450));
-      return;
+      return null;
     }
 
     final url = Uri.parse(
@@ -248,6 +249,12 @@ class PublicRegistrationService {
           response.body,
           fallback: 'Não foi possível enviar a solicitação.',
         ));
+      }
+      try {
+        final decoded = json.decode(response.body);
+        return decoded is Map ? decoded['requestId']?.toString() : null;
+      } catch (_) {
+        return null;
       }
     } on PublicRegistrationException {
       rethrow;

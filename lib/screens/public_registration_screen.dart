@@ -1,3 +1,6 @@
+import 'package:academyhub_mobile/model/early_payment_offer_model.dart';
+import 'package:academyhub_mobile/services/early_payment_offer_service.dart';
+import 'package:academyhub_mobile/widgets/early_payment_offer_popup.dart';
 import 'dart:async';
 import 'dart:convert';
 
@@ -158,6 +161,14 @@ class _PublicRegistrationScreenState extends State<PublicRegistrationScreen> {
   static const Duration _draftSaveDebounce = Duration(milliseconds: 700);
 
   final PublicRegistrationService _service = PublicRegistrationService();
+  final EarlyPaymentOfferService _earlyPaymentService =
+      EarlyPaymentOfferService();
+  EarlyPaymentOffer? _earlyOffer;
+  bool _earlyOfferAccepted = false;
+  bool _earlyOfferToastVisible = false;
+  bool _earlyOfferRegistered = false;
+  bool _earlyOfferRegistering = false;
+  String? _submittedRequestId;
 
   static const List<String> _allergyOptions = [
     'Poeira/ácaros',
@@ -814,7 +825,76 @@ class _PublicRegistrationScreenState extends State<PublicRegistrationScreen> {
           _showInitialSplash = false;
         });
         await _restoreDraftIfNeeded();
+        _loadEarlyPaymentOffer();
       }
+    }
+  }
+
+  /// Loads an advance-payment discount offer, if the school has one running.
+  /// Failures are silent: the offer never gets in the way of the enrollment.
+  Future<void> _loadEarlyPaymentOffer() async {
+    try {
+      final offers = await _earlyPaymentService.publicOffers(widget.schoolId);
+      if (!mounted || offers.isEmpty) return;
+      final offer = offers.first;
+      setState(() => _earlyOffer = offer);
+      if (!await EarlyPaymentOfferMemory.shouldAutoShow(offer.id)) return;
+      // Let the family settle on the form before the card slides in.
+      await Future<void>.delayed(const Duration(milliseconds: 2200));
+      if (mounted && _currentStep != _successStep) {
+        setState(() => _earlyOfferToastVisible = true);
+      }
+    } catch (_) {}
+  }
+
+  void _acceptEarlyOffer() {
+    setState(() => _earlyOfferAccepted = true);
+    Future<void>.delayed(const Duration(milliseconds: 2600), () {
+      if (mounted) setState(() => _earlyOfferToastVisible = false);
+    });
+    if (_currentStep == _successStep) _registerEarlyOfferAdhesion();
+  }
+
+  void _dismissEarlyOffer() {
+    final offer = _earlyOffer;
+    setState(() => _earlyOfferToastVisible = false);
+    if (offer != null && !_earlyOfferAccepted) {
+      EarlyPaymentOfferMemory.dismiss(offer.id);
+    }
+  }
+
+  Future<void> _registerEarlyOfferAdhesion() async {
+    final offer = _earlyOffer;
+    if (offer == null || _earlyOfferRegistered || _earlyOfferRegistering) {
+      return;
+    }
+    setState(() => _earlyOfferRegistering = true);
+    final tutor = _buildTutorData(const {});
+    try {
+      await _earlyPaymentService.publicAdhesion(widget.schoolId, offer.id, {
+        if (_submittedRequestId != null)
+          'registrationRequestId': _submittedRequestId,
+        'studentName': _studentNameController.text.trim(),
+        'guardianName': '${tutor['fullName'] ?? ''}',
+        'guardianPhone': '${tutor['phoneNumber'] ?? ''}',
+        'guardianEmail': '${tutor['email'] ?? ''}',
+        'targetLevel': _selectedClass?.educationLevel ?? '',
+        'targetGrade': _selectedClass?.grade ?? '',
+        'targetShift': _selectedClass?.shift ?? '',
+      });
+      if (mounted) {
+        setState(() {
+          _earlyOfferRegistered = true;
+          _earlyOfferAccepted = true;
+        });
+      }
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text('$error'.replaceFirst('Exception: ', ''))));
+      }
+    } finally {
+      if (mounted) setState(() => _earlyOfferRegistering = false);
     }
   }
 
@@ -994,7 +1074,10 @@ class _PublicRegistrationScreenState extends State<PublicRegistrationScreen> {
 
     final success = await showReportCardOperationDialog(
       context: context,
-      operation: () => _service.submitRegistrationRequest(_buildPayload()),
+      operation: () async {
+        _submittedRequestId =
+            await _service.submitRegistrationRequest(_buildPayload());
+      },
       loadingTitle: 'Enviando solicitação',
       loadingMessage: 'Estamos enviando os dados para a escola.',
       loadingDetail: 'Não feche esta tela enquanto o envio termina.',
@@ -1012,6 +1095,7 @@ class _PublicRegistrationScreenState extends State<PublicRegistrationScreen> {
     });
     if (success == true) {
       await _clearDraft();
+      if (_earlyOfferAccepted) await _registerEarlyOfferAdhesion();
     }
   }
 
@@ -1771,16 +1855,36 @@ class _PublicRegistrationScreenState extends State<PublicRegistrationScreen> {
                 key: const ValueKey('registration-form'),
                 backgroundColor: flowColors.background,
                 body: SafeArea(
-                  child: Column(
+                  child: Stack(
                     children: [
-                      if (!isSuccess) _buildHeader(),
-                      Expanded(
-                        child: AnimatedSwitcher(
-                          duration: const Duration(milliseconds: 220),
-                          child: _buildStepContent(),
-                        ),
+                      Column(
+                        children: [
+                          if (!isSuccess) _buildHeader(),
+                          Expanded(
+                            child: AnimatedSwitcher(
+                              duration: const Duration(milliseconds: 220),
+                              child: _buildStepContent(),
+                            ),
+                          ),
+                          if (!isSuccess) _buildBottomBar(),
+                        ],
                       ),
-                      if (!isSuccess) _buildBottomBar(),
+                      if (_earlyOffer != null &&
+                          _earlyOfferToastVisible &&
+                          !isSuccess)
+                        Positioned(
+                          left: 12.w,
+                          right: 12.w,
+                          bottom: 92.h,
+                          child: Center(
+                            child: EarlyPaymentOfferToast(
+                              offer: _earlyOffer!,
+                              accepted: _earlyOfferAccepted,
+                              onAccept: _acceptEarlyOffer,
+                              onDismiss: _dismissEarlyOffer,
+                            ),
+                          ),
+                        ),
                     ],
                   ),
                 ),
@@ -1899,6 +2003,14 @@ class _PublicRegistrationScreenState extends State<PublicRegistrationScreen> {
               ),
             ],
           ),
+          if (_earlyOffer != null && !_earlyOfferToastVisible) ...[
+            SizedBox(height: 4.h),
+            EarlyPaymentOfferPill(
+              offer: _earlyOffer!,
+              accepted: _earlyOfferAccepted,
+              onTap: () => setState(() => _earlyOfferToastVisible = true),
+            ),
+          ],
           SizedBox(height: 6.h),
           if (hasProgress) ...[
             ClipRRect(
@@ -3470,6 +3582,71 @@ class _PublicRegistrationScreenState extends State<PublicRegistrationScreen> {
     );
   }
 
+  Widget _buildEarlyOfferSuccessCard(EarlyPaymentOffer offer) {
+    final colors = _flowColors;
+    final done = _earlyOfferRegistered;
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(14.w),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF5A524).withValues(alpha: colors.isDark ? .16 : .10),
+        borderRadius: BorderRadius.circular(16.r),
+        border: Border.all(color: const Color(0xFFF5A524).withValues(alpha: .45)),
+      ),
+      child: Row(children: [
+        Icon(done ? Icons.check_circle : Icons.card_giftcard_rounded,
+            color: done ? const Color(0xFF00A859) : const Color(0xFFB86E00),
+            size: 26.sp),
+        SizedBox(width: 12.w),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                done ? 'Desconto reservado!' : offer.title,
+                style: GoogleFonts.inter(
+                  fontSize: 14.sp,
+                  fontWeight: FontWeight.w800,
+                  color: colors.textPrimary,
+                ),
+              ),
+              SizedBox(height: 3.h),
+              Text(
+                done
+                    ? 'A escola vai entrar em contato com as instruções para pagar a mensalidade de ${offer.referenceLabel} com ${offer.discountLabel.toLowerCase()}.'
+                    : '${offer.discountLabel} pagando a mensalidade de ${offer.referenceLabel} antecipada ${earlyPaymentDeadlineText(offer)}.',
+                style: GoogleFonts.inter(
+                  fontSize: 12.5.sp,
+                  height: 1.35,
+                  color: colors.textMuted,
+                ),
+              ),
+              if (!done) ...[
+                SizedBox(height: 8.h),
+                FilledButton(
+                  onPressed: _earlyOfferRegistering
+                      ? null
+                      : () {
+                          _earlyOfferAccepted = true;
+                          _registerEarlyOfferAdhesion();
+                        },
+                  style: FilledButton.styleFrom(
+                    backgroundColor: const Color(0xFFF5A524),
+                    foregroundColor: Colors.black,
+                    visualDensity: VisualDensity.compact,
+                  ),
+                  child: Text(_earlyOfferRegistering
+                      ? 'Registrando…'
+                      : 'Quero aproveitar'),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ]),
+    );
+  }
+
   Widget _buildSuccessStep() {
     final colors = _flowColors;
 
@@ -3512,6 +3689,10 @@ class _PublicRegistrationScreenState extends State<PublicRegistrationScreen> {
               color: colors.textMuted,
             ),
           ),
+          if (_earlyOffer != null) ...[
+            SizedBox(height: 18.h),
+            _buildEarlyOfferSuccessCard(_earlyOffer!),
+          ],
           if (_selectedEnrollmentOffer != null) ...[
             SizedBox(height: 18.h),
             Container(
