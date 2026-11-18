@@ -34,7 +34,14 @@ class _RegistrationFlowColors {
   }
 
   Color get brand => const Color(0xFF00A859);
-  Color get brandStrong => const Color(0xFF047857);
+  Color get brandStrong =>
+      isDark ? const Color(0xFF6EE7B7) : const Color(0xFF047857);
+
+  /// Text/icon color on top of [selectedSurface]; readable in both modes.
+  Color get onSelected =>
+      isDark ? const Color(0xFFA7F3D0) : const Color(0xFF065F46);
+  Color get selectedBorder =>
+      isDark ? const Color(0xFF34D399) : const Color(0xFF00A859);
   Color get background =>
       isDark ? const Color(0xFF0B1220) : const Color(0xFFF6F8FA);
   Color get surface => isDark ? const Color(0xFF111827) : Colors.white;
@@ -42,7 +49,7 @@ class _RegistrationFlowColors {
       isDark ? const Color(0xFF172033) : const Color(0xFFF8FAFC);
   Color get elevated => isDark ? const Color(0xFF182235) : Colors.white;
   Color get selectedSurface =>
-      isDark ? const Color(0xFF0E2A23) : const Color(0xFFE8F8EF);
+      isDark ? const Color(0xFF0F3B2E) : const Color(0xFFE8F8EF);
   Color get disabledSurface =>
       isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9);
   Color get border =>
@@ -91,7 +98,77 @@ ThemeData _registrationFlowTheme(_RegistrationFlowColors colors) {
     scaffoldBackgroundColor: colors.background,
   );
 
+  final inputBorder = OutlineInputBorder(
+    borderRadius: BorderRadius.circular(16),
+    borderSide: BorderSide(color: colors.border),
+  );
   return base.copyWith(
+    canvasColor: colors.surface,
+    cardColor: colors.surface,
+    dividerColor: colors.border,
+    textTheme: GoogleFonts.interTextTheme(base.textTheme).apply(
+      bodyColor: colors.textPrimary,
+      displayColor: colors.textPrimary,
+    ),
+    textSelectionTheme: TextSelectionThemeData(
+      cursorColor: colors.brand,
+      selectionColor: colors.brand.withValues(alpha: 0.25),
+      selectionHandleColor: colors.brand,
+    ),
+    inputDecorationTheme: InputDecorationTheme(
+      filled: true,
+      fillColor: colors.surface,
+      border: inputBorder,
+      enabledBorder: inputBorder,
+      focusedBorder: inputBorder.copyWith(
+          borderSide: BorderSide(color: colors.brand, width: 1.6)),
+      labelStyle: GoogleFonts.inter(color: colors.textMuted),
+      hintStyle: GoogleFonts.inter(color: colors.textMuted),
+    ),
+    popupMenuTheme: PopupMenuThemeData(
+      color: colors.elevated,
+      surfaceTintColor: Colors.transparent,
+      textStyle: GoogleFonts.inter(color: colors.textPrimary),
+    ),
+    bottomSheetTheme: BottomSheetThemeData(
+      backgroundColor: colors.surface,
+      surfaceTintColor: Colors.transparent,
+      modalBackgroundColor: colors.surface,
+    ),
+    dialogTheme: DialogThemeData(
+      backgroundColor: colors.surface,
+      surfaceTintColor: Colors.transparent,
+      titleTextStyle: GoogleFonts.inter(
+          color: colors.textPrimary, fontSize: 18, fontWeight: FontWeight.w800),
+      contentTextStyle: GoogleFonts.inter(color: colors.textSecondary),
+    ),
+    datePickerTheme: DatePickerThemeData(
+      backgroundColor: colors.surface,
+      surfaceTintColor: Colors.transparent,
+      headerForegroundColor: colors.textPrimary,
+    ),
+    switchTheme: SwitchThemeData(
+      thumbColor: WidgetStateProperty.resolveWith((states) =>
+          states.contains(WidgetState.selected)
+              ? Colors.white
+              : colors.textMuted),
+      trackColor: WidgetStateProperty.resolveWith((states) =>
+          states.contains(WidgetState.selected)
+              ? colors.brand
+              : colors.disabledSurface),
+      trackOutlineColor: WidgetStateProperty.all(Colors.transparent),
+    ),
+    tooltipTheme: TooltipThemeData(
+      decoration: BoxDecoration(
+        color:
+            colors.isDark ? const Color(0xFFE2E8F0) : const Color(0xFF0F172A),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      textStyle: GoogleFonts.inter(
+        fontSize: 12,
+        color: colors.isDark ? const Color(0xFF0F172A) : Colors.white,
+      ),
+    ),
     iconButtonTheme: IconButtonThemeData(
       style: IconButton.styleFrom(
         foregroundColor: colors.textPrimary,
@@ -108,6 +185,7 @@ ThemeData _registrationFlowTheme(_RegistrationFlowColors colors) {
       side: BorderSide(color: colors.borderStrong),
     ),
     chipTheme: base.chipTheme.copyWith(
+      checkmarkColor: colors.onSelected,
       backgroundColor: colors.surface,
       selectedColor: colors.selectedSurface,
       disabledColor: colors.disabledSurface,
@@ -165,7 +243,10 @@ class _PublicRegistrationScreenState extends State<PublicRegistrationScreen> {
       EarlyPaymentOfferService();
   EarlyPaymentOffer? _earlyOffer;
   bool _earlyOfferAccepted = false;
-  bool _earlyOfferToastVisible = false;
+  EarlyPaymentQuote? _offerQuote;
+  String? _offerQuoteClassId;
+  bool _themeResolved = false;
+  static const _themePrefKey = 'public_registration_dark_mode';
   bool _earlyOfferRegistered = false;
   bool _earlyOfferRegistering = false;
   String? _submittedRequestId;
@@ -832,35 +913,60 @@ class _PublicRegistrationScreenState extends State<PublicRegistrationScreen> {
 
   /// Loads an advance-payment discount offer, if the school has one running.
   /// Failures are silent: the offer never gets in the way of the enrollment.
+  /// Loads an advance-payment discount offer, if the school has one running.
+  /// It is presented only on the review step, right before sending, so it
+  /// never interrupts the form. Failures are silent.
   Future<void> _loadEarlyPaymentOffer() async {
     try {
       final offers = await _earlyPaymentService.publicOffers(widget.schoolId);
       if (!mounted || offers.isEmpty) return;
-      final offer = offers.first;
-      setState(() => _earlyOffer = offer);
-      if (!await EarlyPaymentOfferMemory.shouldAutoShow(offer.id)) return;
-      // Let the family settle on the form before the card slides in.
-      await Future<void>.delayed(const Duration(milliseconds: 2200));
-      if (mounted && _currentStep != _successStep) {
-        setState(() => _earlyOfferToastVisible = true);
-      }
+      setState(() => _earlyOffer = offers.first);
+      _refreshOfferQuote();
     } catch (_) {}
   }
 
-  void _acceptEarlyOffer() {
-    setState(() => _earlyOfferAccepted = true);
-    Future<void>.delayed(const Duration(milliseconds: 2600), () {
-      if (mounted) setState(() => _earlyOfferToastVisible = false);
-    });
-    if (_currentStep == _successStep) _registerEarlyOfferAdhesion();
+  /// Price of the chosen class with the discount (needs published fees).
+  Future<void> _refreshOfferQuote() async {
+    final offer = _earlyOffer, selected = _selectedClass;
+    if (offer == null || selected == null) return;
+    if (_offerQuoteClassId == selected.id) return;
+    _offerQuoteClassId = selected.id;
+    try {
+      final quote = await _earlyPaymentService.publicQuote(
+        widget.schoolId,
+        offer.id,
+        level: selected.educationLevel ?? '',
+        grade: selected.grade ?? '',
+        shift: selected.shift ?? '',
+      );
+      if (mounted && _selectedClass?.id == selected.id) {
+        setState(() => _offerQuote = quote);
+      }
+    } catch (_) {
+      if (mounted) setState(() => _offerQuote = null);
+    }
   }
 
-  void _dismissEarlyOffer() {
-    final offer = _earlyOffer;
-    setState(() => _earlyOfferToastVisible = false);
-    if (offer != null && !_earlyOfferAccepted) {
-      EarlyPaymentOfferMemory.dismiss(offer.id);
-    }
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_themeResolved) return;
+    _themeResolved = true;
+    // Follow the phone's theme until the family picks one.
+    _isDarkMode = MediaQuery.platformBrightnessOf(context) == Brightness.dark;
+    SharedPreferences.getInstance().then((prefs) {
+      final saved = prefs.getBool(_themePrefKey);
+      if (saved != null && mounted && saved != _isDarkMode) {
+        setState(() => _isDarkMode = saved);
+      }
+    }).catchError((_) {});
+  }
+
+  void _toggleTheme() {
+    setState(() => _isDarkMode = !_isDarkMode);
+    SharedPreferences.getInstance()
+        .then((prefs) => prefs.setBool(_themePrefKey, _isDarkMode))
+        .catchError((_) => false);
   }
 
   Future<void> _registerEarlyOfferAdhesion() async {
@@ -890,8 +996,8 @@ class _PublicRegistrationScreenState extends State<PublicRegistrationScreen> {
       }
     } catch (error) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text('$error'.replaceFirst('Exception: ', ''))));
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('$error'.replaceFirst('Exception: ', ''))));
       }
     } finally {
       if (mounted) setState(() => _earlyOfferRegistering = false);
@@ -1730,9 +1836,25 @@ class _PublicRegistrationScreenState extends State<PublicRegistrationScreen> {
 
   int get _visibleStepCount => _orderedDataSteps.length;
 
+  String get _currentStepName => switch (_currentStep) {
+        _classStep => 'Turma',
+        _offerStep => 'Regime',
+        _studentStep => 'Aluno',
+        _motherStep => 'Mãe',
+        _fatherStep => 'Pai',
+        _responsibleStep => 'Responsável',
+        _addressStep => 'Endereço',
+        _healthStep => 'Saúde',
+        _reviewStep => 'Revisão',
+        _ => '',
+      };
+
   int get _visibleStepNumber {
     final index = _orderedDataSteps.indexOf(_currentStep);
-    return index == -1 ? 0 : index + 1;
+    if (index != -1) return index + 1;
+    // Steps hidden for this school (e.g. regime) count as the next visible one.
+    final next = _orderedDataSteps.indexWhere((s) => s > _currentStep);
+    return next == -1 ? _visibleStepCount : next + 1;
   }
 
   Map<String, String> get _regimeReviewItems {
@@ -1783,6 +1905,9 @@ class _PublicRegistrationScreenState extends State<PublicRegistrationScreen> {
       _clearSelectedOffer();
     });
     _scheduleDraftSave();
+    _offerQuote = null;
+    _offerQuoteClassId = null;
+    _refreshOfferQuote();
 
     await _fetchOffersForSelectedClass();
   }
@@ -1807,6 +1932,9 @@ class _PublicRegistrationScreenState extends State<PublicRegistrationScreen> {
       SnackBar(
         content: Text(message.replaceFirst('Exception: ', '')),
         behavior: SnackBarBehavior.floating,
+        // Keep the message above the fixed "Continuar" bar.
+        margin: EdgeInsets.fromLTRB(16.w, 0, 16.w, 96.h),
+        duration: const Duration(seconds: 3),
       ),
     );
   }
@@ -1869,22 +1997,6 @@ class _PublicRegistrationScreenState extends State<PublicRegistrationScreen> {
                           if (!isSuccess) _buildBottomBar(),
                         ],
                       ),
-                      if (_earlyOffer != null &&
-                          _earlyOfferToastVisible &&
-                          !isSuccess)
-                        Positioned(
-                          left: 12.w,
-                          right: 12.w,
-                          bottom: 92.h,
-                          child: Center(
-                            child: EarlyPaymentOfferToast(
-                              offer: _earlyOffer!,
-                              accepted: _earlyOfferAccepted,
-                              onAccept: _acceptEarlyOffer,
-                              onDismiss: _dismissEarlyOffer,
-                            ),
-                          ),
-                        ),
                     ],
                   ),
                 ),
@@ -1986,9 +2098,7 @@ class _PublicRegistrationScreenState extends State<PublicRegistrationScreen> {
                     tooltip: colors.isDark
                         ? 'Ativar modo claro'
                         : 'Ativar modo escuro',
-                    onPressed: () {
-                      setState(() => _isDarkMode = !_isDarkMode);
-                    },
+                    onPressed: _toggleTheme,
                     icon: Icon(
                       colors.isDark
                           ? Icons.light_mode_rounded
@@ -2003,14 +2113,6 @@ class _PublicRegistrationScreenState extends State<PublicRegistrationScreen> {
               ),
             ],
           ),
-          if (_earlyOffer != null && !_earlyOfferToastVisible) ...[
-            SizedBox(height: 4.h),
-            EarlyPaymentOfferPill(
-              offer: _earlyOffer!,
-              accepted: _earlyOfferAccepted,
-              onTap: () => setState(() => _earlyOfferToastVisible = true),
-            ),
-          ],
           SizedBox(height: 6.h),
           if (hasProgress) ...[
             ClipRRect(
@@ -2026,7 +2128,7 @@ class _PublicRegistrationScreenState extends State<PublicRegistrationScreen> {
             Align(
               alignment: Alignment.centerLeft,
               child: Text(
-                'Etapa $_visibleStepNumber de $_visibleStepCount',
+                'Etapa $_visibleStepNumber de $_visibleStepCount · $_currentStepName',
                 style: GoogleFonts.inter(
                   fontSize: 12.sp,
                   fontWeight: FontWeight.w600,
@@ -3219,13 +3321,13 @@ class _PublicRegistrationScreenState extends State<PublicRegistrationScreen> {
                     selectedColor: colors.selectedSurface,
                     backgroundColor: colors.surface,
                     side: BorderSide(
-                      color: selected ? colors.brand : colors.border,
+                      color: selected ? colors.selectedBorder : colors.border,
                     ),
                     labelStyle: GoogleFonts.inter(
                       fontSize: 13.sp,
                       fontWeight: FontWeight.w800,
                       color:
-                          selected ? colors.brandStrong : colors.textSecondary,
+                          selected ? colors.onSelected : colors.textSecondary,
                     ),
                   );
                 }).toList(),
@@ -3379,7 +3481,7 @@ class _PublicRegistrationScreenState extends State<PublicRegistrationScreen> {
           color: selected ? colors.selectedSurface : colors.surface,
           borderRadius: BorderRadius.circular(16.r),
           border: Border.all(
-            color: selected ? colors.brand : colors.border,
+            color: selected ? colors.selectedBorder : colors.border,
             width: selected ? 1.8 : 1,
           ),
           boxShadow: selected
@@ -3470,6 +3572,10 @@ class _PublicRegistrationScreenState extends State<PublicRegistrationScreen> {
           icon: Icons.fact_check_rounded,
         ),
         SizedBox(height: 22.h),
+        if (_earlyOffer != null) ...[
+          _buildEarlyOfferReviewCard(_earlyOffer!),
+          SizedBox(height: 18.h),
+        ],
         _ReviewSection(
           title: 'Escola',
           items: {
@@ -3582,6 +3688,185 @@ class _PublicRegistrationScreenState extends State<PublicRegistrationScreen> {
     );
   }
 
+  String _brl(double v) =>
+      NumberFormat.currency(locale: 'pt_BR', symbol: r'R$').format(v);
+
+  /// Offer shown on the review step: a clear opt-in with the real price of
+  /// the chosen class. The interest is sent together with the request.
+  Widget _buildEarlyOfferReviewCard(EarlyPaymentOffer offer) {
+    final colors = _flowColors;
+    final quote = _offerQuote;
+    final accepted = _earlyOfferAccepted;
+    final deadline = earlyPaymentDeadlineText(offer);
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      decoration: BoxDecoration(
+        color: accepted ? colors.selectedSurface : colors.surface,
+        borderRadius: BorderRadius.circular(18.r),
+        border: Border.all(
+          color: accepted ? colors.selectedBorder : colors.border,
+          width: accepted ? 1.6 : 1,
+        ),
+      ),
+      child: Material(
+        type: MaterialType.transparency,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(18.r),
+          onTap: () => setState(() => _earlyOfferAccepted = !accepted),
+          child: Padding(
+            padding: EdgeInsets.all(16.w),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(children: [
+                  Container(
+                    padding:
+                        EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
+                    decoration: BoxDecoration(
+                      color: colors.brand,
+                      borderRadius: BorderRadius.circular(20.r),
+                    ),
+                    child: Row(mainAxisSize: MainAxisSize.min, children: [
+                      Icon(Icons.card_giftcard_rounded,
+                          size: 13.sp, color: Colors.white),
+                      SizedBox(width: 5.w),
+                      Text(
+                        'Benefício opcional',
+                        style: GoogleFonts.inter(
+                          fontSize: 11.sp,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ]),
+                  ),
+                  const Spacer(),
+                  Text(
+                    offer.shortDiscount,
+                    style: GoogleFonts.inter(
+                      fontSize: 13.sp,
+                      fontWeight: FontWeight.w800,
+                      color: colors.brandStrong,
+                    ),
+                  ),
+                ]),
+                SizedBox(height: 12.h),
+                Text(
+                  offer.title,
+                  style: GoogleFonts.inter(
+                    fontSize: 17.sp,
+                    fontWeight: FontWeight.w800,
+                    color: colors.textPrimary,
+                  ),
+                ),
+                SizedBox(height: 4.h),
+                Text(
+                  offer.description.isNotEmpty
+                      ? offer.description
+                      : 'Pague a mensalidade de ${offer.referenceLabel} antecipada${deadline.isEmpty ? '' : ' $deadline'} e ganhe ${offer.discountLabel.toLowerCase()}.',
+                  style: GoogleFonts.inter(
+                    fontSize: 13.5.sp,
+                    height: 1.4,
+                    color: colors.textSecondary,
+                  ),
+                ),
+                if (quote != null && quote.finalAmount != null) ...[
+                  SizedBox(height: 12.h),
+                  Container(
+                    width: double.infinity,
+                    padding: EdgeInsets.all(12.w),
+                    decoration: BoxDecoration(
+                      color: colors.surfaceAlt,
+                      borderRadius: BorderRadius.circular(12.r),
+                    ),
+                    child: Row(children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Mensalidade de ${offer.referenceLabel.split('/').first}',
+                              style: GoogleFonts.inter(
+                                fontSize: 11.5.sp,
+                                color: colors.textMuted,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            SizedBox(height: 2.h),
+                            Row(children: [
+                              if (quote.originalAmount != null) ...[
+                                Text(
+                                  _brl(quote.originalAmount!),
+                                  style: GoogleFonts.inter(
+                                    fontSize: 13.sp,
+                                    color: colors.textMuted,
+                                    decoration: TextDecoration.lineThrough,
+                                  ),
+                                ),
+                                SizedBox(width: 8.w),
+                              ],
+                              Text(
+                                _brl(quote.finalAmount!),
+                                style: GoogleFonts.inter(
+                                  fontSize: 18.sp,
+                                  fontWeight: FontWeight.w800,
+                                  color: colors.textPrimary,
+                                ),
+                              ),
+                            ]),
+                          ],
+                        ),
+                      ),
+                      if (quote.discountAmount != null)
+                        Text(
+                          'economia de\n${_brl(quote.discountAmount!)}',
+                          textAlign: TextAlign.right,
+                          style: GoogleFonts.inter(
+                            fontSize: 11.5.sp,
+                            height: 1.3,
+                            fontWeight: FontWeight.w700,
+                            color: colors.brandStrong,
+                          ),
+                        ),
+                    ]),
+                  ),
+                ],
+                SizedBox(height: 14.h),
+                Row(children: [
+                  Expanded(
+                    child: Text(
+                      accepted
+                          ? 'Quero aproveitar este desconto'
+                          : 'Quero aproveitar este desconto?',
+                      style: GoogleFonts.inter(
+                        fontSize: 14.sp,
+                        fontWeight: FontWeight.w800,
+                        color:
+                            accepted ? colors.onSelected : colors.textPrimary,
+                      ),
+                    ),
+                  ),
+                  Switch(
+                    value: accepted,
+                    onChanged: (v) => setState(() => _earlyOfferAccepted = v),
+                  ),
+                ]),
+                Text(
+                  'Sem pagamento agora: a escola entra em contato com as instruções depois de analisar a matrícula.',
+                  style: GoogleFonts.inter(
+                    fontSize: 11.5.sp,
+                    height: 1.35,
+                    color: colors.textMuted,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildEarlyOfferSuccessCard(EarlyPaymentOffer offer) {
     final colors = _flowColors;
     final done = _earlyOfferRegistered;
@@ -3589,21 +3874,31 @@ class _PublicRegistrationScreenState extends State<PublicRegistrationScreen> {
       width: double.infinity,
       padding: EdgeInsets.all(14.w),
       decoration: BoxDecoration(
-        color: const Color(0xFFF5A524).withValues(alpha: colors.isDark ? .16 : .10),
+        color: done ? colors.selectedSurface : colors.surface,
         borderRadius: BorderRadius.circular(16.r),
-        border: Border.all(color: const Color(0xFFF5A524).withValues(alpha: .45)),
+        border: Border.all(color: done ? colors.selectedBorder : colors.border),
       ),
       child: Row(children: [
-        Icon(done ? Icons.check_circle : Icons.card_giftcard_rounded,
-            color: done ? const Color(0xFF00A859) : const Color(0xFFB86E00),
-            size: 26.sp),
+        Container(
+          width: 40.w,
+          height: 40.w,
+          decoration: BoxDecoration(
+            color: done ? colors.brand : colors.iconSurface,
+            shape: BoxShape.circle,
+          ),
+          child: Icon(
+            done ? Icons.check_rounded : Icons.card_giftcard_rounded,
+            color: done ? Colors.white : colors.brand,
+            size: 22.sp,
+          ),
+        ),
         SizedBox(width: 12.w),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                done ? 'Desconto reservado!' : offer.title,
+                done ? 'Desconto reservado' : offer.title,
                 style: GoogleFonts.inter(
                   fontSize: 14.sp,
                   fontWeight: FontWeight.w800,
@@ -3613,27 +3908,29 @@ class _PublicRegistrationScreenState extends State<PublicRegistrationScreen> {
               SizedBox(height: 3.h),
               Text(
                 done
-                    ? 'A escola vai entrar em contato com as instruções para pagar a mensalidade de ${offer.referenceLabel} com ${offer.discountLabel.toLowerCase()}.'
-                    : '${offer.discountLabel} pagando a mensalidade de ${offer.referenceLabel} antecipada ${earlyPaymentDeadlineText(offer)}.',
+                    ? 'Você vai receber as instruções para pagar a mensalidade de ${offer.referenceLabel} com ${offer.discountLabel.toLowerCase()}.'
+                    : 'Ainda dá tempo: ${offer.discountLabel.toLowerCase()} pagando ${offer.referenceLabel} antecipada ${earlyPaymentDeadlineText(offer)}.',
                 style: GoogleFonts.inter(
                   fontSize: 12.5.sp,
                   height: 1.35,
-                  color: colors.textMuted,
+                  color: colors.textSecondary,
                 ),
               ),
               if (!done) ...[
                 SizedBox(height: 8.h),
-                FilledButton(
+                OutlinedButton(
                   onPressed: _earlyOfferRegistering
                       ? null
                       : () {
                           _earlyOfferAccepted = true;
                           _registerEarlyOfferAdhesion();
                         },
-                  style: FilledButton.styleFrom(
-                    backgroundColor: const Color(0xFFF5A524),
-                    foregroundColor: Colors.black,
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: colors.brandStrong,
+                    side: BorderSide(color: colors.selectedBorder),
                     visualDensity: VisualDensity.compact,
+                    textStyle: GoogleFonts.inter(
+                        fontSize: 13.sp, fontWeight: FontWeight.w800),
                   ),
                   child: Text(_earlyOfferRegistering
                       ? 'Registrando…'
@@ -3807,13 +4104,13 @@ class _PublicRegistrationScreenState extends State<PublicRegistrationScreen> {
       disabledColor: colors.disabledSurface,
       backgroundColor: colors.surface,
       side: BorderSide(
-        color: selected ? colors.brand : colors.border,
+        color: selected ? colors.selectedBorder : colors.border,
       ),
       labelStyle: GoogleFonts.inter(
         fontSize: 13.sp,
         fontWeight: FontWeight.w800,
         color: enabled
-            ? (selected ? colors.brandStrong : colors.textSecondary)
+            ? (selected ? colors.onSelected : colors.textSecondary)
             : colors.textMuted,
       ),
     );
@@ -3931,7 +4228,7 @@ class _PublicRegistrationScreenState extends State<PublicRegistrationScreen> {
           color: selected ? colors.selectedSurface : colors.surfaceAlt,
           borderRadius: BorderRadius.circular(12.r),
           border: Border.all(
-            color: selected ? colors.brand : colors.border,
+            color: selected ? colors.selectedBorder : colors.border,
           ),
         ),
         child: Text(
@@ -3939,7 +4236,7 @@ class _PublicRegistrationScreenState extends State<PublicRegistrationScreen> {
           style: GoogleFonts.inter(
             fontSize: 14.sp,
             fontWeight: FontWeight.w800,
-            color: selected ? colors.brandStrong : colors.textSecondary,
+            color: selected ? colors.onSelected : colors.textSecondary,
           ),
         ),
       ),
@@ -3972,12 +4269,12 @@ class _PublicRegistrationScreenState extends State<PublicRegistrationScreen> {
           selectedColor: colors.selectedSurface,
           backgroundColor: colors.surface,
           side: BorderSide(
-            color: isSelected ? colors.brand : colors.border,
+            color: isSelected ? colors.selectedBorder : colors.border,
           ),
           labelStyle: GoogleFonts.inter(
             fontSize: 12.sp,
             fontWeight: FontWeight.w700,
-            color: isSelected ? colors.brandStrong : colors.textSecondary,
+            color: isSelected ? colors.onSelected : colors.textSecondary,
           ),
         );
       }).toList(),
@@ -4014,6 +4311,8 @@ class _PublicRegistrationScreenState extends State<PublicRegistrationScreen> {
     );
   }
 
+  /// Short option lists are shown as tappable chips instead of a dropdown:
+  /// every option is visible, readable in both themes and easier to tap.
   Widget _buildDropdownField({
     required String label,
     required String value,
@@ -4021,48 +4320,47 @@ class _PublicRegistrationScreenState extends State<PublicRegistrationScreen> {
     required ValueChanged<String?> onChanged,
   }) {
     final colors = _flowColors;
-    final dropdownTextStyle = GoogleFonts.inter(
-      fontSize: 15.sp,
-      fontWeight: FontWeight.w600,
-      color: colors.textPrimary,
-    );
-
-    return DropdownButtonFormField<String>(
-      initialValue: value,
-      isExpanded: true,
-      dropdownColor: colors.surface,
-      iconEnabledColor: colors.brand,
-      iconDisabledColor: colors.textMuted,
-      style: dropdownTextStyle,
-      decoration: _inputDecoration(
-        label: label,
-        icon: Icons.keyboard_arrow_down_rounded,
+    return SizedBox(
+      width: double.infinity,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: GoogleFonts.inter(
+              fontSize: 13.sp,
+              fontWeight: FontWeight.w700,
+              color: colors.textSecondary,
+            ),
+          ),
+          SizedBox(height: 8.h),
+          Wrap(
+            spacing: 8.w,
+            runSpacing: 8.h,
+            children: items.map((item) {
+              final selected = item == value;
+              return ChoiceChip(
+                label: Text(item),
+                selected: selected,
+                showCheckmark: true,
+                onSelected: (_) => onChanged(item),
+                selectedColor: colors.selectedSurface,
+                backgroundColor: colors.surface,
+                side: BorderSide(
+                  color: selected ? colors.selectedBorder : colors.border,
+                  width: selected ? 1.4 : 1,
+                ),
+                padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 6.h),
+                labelStyle: GoogleFonts.inter(
+                  fontSize: 13.sp,
+                  fontWeight: FontWeight.w700,
+                  color: selected ? colors.onSelected : colors.textSecondary,
+                ),
+              );
+            }).toList(),
+          ),
+        ],
       ),
-      selectedItemBuilder: (context) {
-        return items.map((item) {
-          return Align(
-            alignment: Alignment.centerLeft,
-            child: Text(
-              item,
-              overflow: TextOverflow.ellipsis,
-              style: dropdownTextStyle,
-            ),
-          );
-        }).toList();
-      },
-      items: items
-          .map(
-            (item) => DropdownMenuItem<String>(
-              value: item,
-              child: Text(
-                item,
-                overflow: TextOverflow.ellipsis,
-                style: dropdownTextStyle,
-              ),
-            ),
-          )
-          .toList(),
-      onChanged: onChanged,
     );
   }
 
@@ -4276,7 +4574,7 @@ class _PublicRegistrationScreenState extends State<PublicRegistrationScreen> {
             color: enabled ? colors.surface : colors.disabledSurface,
             borderRadius: BorderRadius.circular(14.r),
             border: Border.all(
-              color: selected ? colors.brand : colors.border,
+              color: selected ? colors.selectedBorder : colors.border,
               width: selected ? 1.8 : 1,
             ),
             boxShadow: selected
@@ -4352,7 +4650,10 @@ class _PublicRegistrationScreenState extends State<PublicRegistrationScreen> {
   String _classLevelLabel(PublicRegistrationClassModel item) {
     final parts = [
       item.educationLevel,
-      if ((item.grade ?? '').trim().isNotEmpty) '${item.grade}º ano',
+      if ((item.grade ?? '').trim().isNotEmpty)
+        RegExp(r'^\d+\s*[°º]?$').hasMatch(item.grade!.trim())
+            ? '${item.grade!.replaceAll(RegExp(r'[°º\s]'), '')}º ano'
+            : item.grade!.trim(),
     ].whereType<String>().where((part) => part.trim().isNotEmpty).toList();
 
     return parts.isEmpty ? 'Série não informada' : parts.join(' • ');

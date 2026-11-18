@@ -4,8 +4,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-const _gold = Color(0xFFF5A524);
-const _goldDark = Color(0xFFB86E00);
+const _gold = Color(0xFF00A859);
+const _goldDark = Color(0xFF047857);
 final _shortDate = DateFormat('dd/MM');
 
 /// Remembers, per device, when the family dismissed an offer so the popup
@@ -167,7 +167,7 @@ class _EarlyPaymentOfferToastState extends State<EarlyPaymentOfferToast>
                             onPressed: widget.onAccept,
                             style: FilledButton.styleFrom(
                               backgroundColor: _gold,
-                              foregroundColor: Colors.black,
+                              foregroundColor: Colors.white,
                               visualDensity: VisualDensity.compact,
                               padding:
                                   const EdgeInsets.symmetric(horizontal: 14),
@@ -236,7 +236,7 @@ class _GiftBadgeState extends State<_GiftBadge>
             height: 44,
             decoration: BoxDecoration(
               gradient: const LinearGradient(
-                  colors: [Color(0xFFFFD27A), _gold],
+                  colors: [Color(0xFF34D399), _gold],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight),
               borderRadius: BorderRadius.circular(14),
