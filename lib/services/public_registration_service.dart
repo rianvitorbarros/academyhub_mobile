@@ -76,9 +76,13 @@ class PublicRegistrationService {
     }
   }
 
+  /// Classes open to the public link. With [academicYear] the API returns the
+  /// catalogue of that year (next year includes planned classes, available
+  /// once the school publishes next year's fees).
   Future<List<PublicRegistrationClassModel>> fetchPublicClasses(
-    String schoolId,
-  ) async {
+    String schoolId, {
+    int? academicYear,
+  }) async {
     if (_visualMockEnabled) {
       return [
         PublicRegistrationClassModel.fromJson({
@@ -125,6 +129,9 @@ class PublicRegistrationService {
 
     final url = Uri.parse(
       '${ApiConfig.apiUrl}/registration-requests/public/$schoolId/classes',
+    ).replace(
+      queryParameters:
+          academicYear == null ? null : {'academicYear': '$academicYear'},
     );
 
     try {
