@@ -74,3 +74,16 @@ class EarlyPaymentStudentQuote {
         joined: j['adhesion'] != null,
       );
 }
+
+/// Price of a class with the offer applied (from the public simulate route).
+class EarlyPaymentQuote {
+  final double? originalAmount, discountAmount, finalAmount;
+  const EarlyPaymentQuote(
+      {this.originalAmount, this.discountAmount, this.finalAmount});
+  factory EarlyPaymentQuote.fromJson(Map<String, dynamic> j) =>
+      EarlyPaymentQuote(
+        originalAmount: (j['originalAmount'] as num?)?.toDouble(),
+        discountAmount: (j['discountAmount'] as num?)?.toDouble(),
+        finalAmount: (j['finalAmount'] as num?)?.toDouble(),
+      );
+}

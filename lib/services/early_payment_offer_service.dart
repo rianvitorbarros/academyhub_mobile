@@ -44,6 +44,28 @@ class EarlyPaymentOfferService {
     return _items(_decode(response, 'Não foi possível carregar as ofertas.'));
   }
 
+  /// Price of the chosen class with the discount, when the school already
+  /// published next year's fees. Returns null amounts otherwise.
+  Future<EarlyPaymentQuote> publicQuote(String schoolId, String offerId,
+      {required String level,
+      required String grade,
+      required String shift}) async {
+    final response = await _client
+        .get(
+            Uri.parse(
+                    '${ApiConfig.apiUrl}/public/early-payment-offers/$schoolId/$offerId/simulate')
+                .replace(queryParameters: {
+              'level': level,
+              'grade': grade,
+              'shift': shift,
+            }),
+            headers: _headers())
+        .timeout(const Duration(seconds: 12));
+    final data = _decode(response, 'Não foi possível calcular o desconto.');
+    return EarlyPaymentQuote.fromJson(
+        data is Map ? Map<String, dynamic>.from(data) : const {});
+  }
+
   Future<void> publicAdhesion(
       String schoolId, String offerId, Map<String, dynamic> payload) async {
     final response = await _client

@@ -375,8 +375,8 @@ class _GuardianPortalScreenState extends State<GuardianPortalScreen> {
           .guardianOffers(token)
           .timeout(const Duration(seconds: 6));
       if (!mounted) return;
-      setState(() => _earlyOffers =
-          offers.where((o) => o.students.isNotEmpty).toList());
+      setState(() =>
+          _earlyOffers = offers.where((o) => o.students.isNotEmpty).toList());
     } catch (_) {
       // The offer is optional and must never disturb the portal.
     }
@@ -464,8 +464,8 @@ class _GuardianPortalScreenState extends State<GuardianPortalScreen> {
       return true;
     } catch (error) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text('$error'.replaceFirst('Exception: ', ''))));
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('$error'.replaceFirst('Exception: ', ''))));
       }
       return false;
     } finally {
@@ -477,21 +477,22 @@ class _GuardianPortalScreenState extends State<GuardianPortalScreen> {
     final offer = _earlyOffers.first;
     final muted = _guardianTextSecondary(sheetContext);
     return StatefulBuilder(builder: (context, setSheet) {
-      final current = _earlyOffers.firstWhere((o) => o.id == offer.id,
-          orElse: () => offer);
+      final current =
+          _earlyOffers.firstWhere((o) => o.id == offer.id, orElse: () => offer);
       return Container(
         padding: EdgeInsets.all(14.w),
         decoration: BoxDecoration(
-          color: const Color(0xFFF5A524).withValues(alpha: .10),
+          color: const Color(0xFF00A859).withValues(alpha: .10),
           borderRadius: BorderRadius.circular(18.r),
-          border: Border.all(color: const Color(0xFFF5A524).withValues(alpha: .45)),
+          border:
+              Border.all(color: const Color(0xFF00A859).withValues(alpha: .45)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(children: [
               Icon(Icons.card_giftcard_rounded,
-                  color: const Color(0xFFB86E00), size: 22.sp),
+                  color: const Color(0xFF047857), size: 22.sp),
               SizedBox(width: 8.w),
               Expanded(
                 child: Text(current.title,
@@ -501,11 +502,13 @@ class _GuardianPortalScreenState extends State<GuardianPortalScreen> {
               Container(
                 padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 3.h),
                 decoration: BoxDecoration(
-                    color: const Color(0xFFF5A524),
+                    color: const Color(0xFF00A859),
                     borderRadius: BorderRadius.circular(20.r)),
                 child: Text(current.shortDiscount,
                     style: GoogleFonts.inter(
-                        fontSize: 11.sp, fontWeight: FontWeight.w800)),
+                        fontSize: 11.sp,
+                        fontWeight: FontWeight.w800,
+                        color: Colors.white)),
               ),
             ]),
             SizedBox(height: 4.h),
@@ -536,7 +539,7 @@ class _GuardianPortalScreenState extends State<GuardianPortalScreen> {
                           Text(price,
                               style: GoogleFonts.inter(
                                   fontSize: 11.5.sp,
-                                  color: const Color(0xFFB86E00),
+                                  color: const Color(0xFF047857),
                                   fontWeight: FontWeight.w600)),
                       ],
                     ),
@@ -562,8 +565,8 @@ class _GuardianPortalScreenState extends State<GuardianPortalScreen> {
                               if (sheetContext.mounted) setSheet(() {});
                             },
                       style: FilledButton.styleFrom(
-                          backgroundColor: const Color(0xFFF5A524),
-                          foregroundColor: Colors.black,
+                          backgroundColor: const Color(0xFF00A859),
+                          foregroundColor: Colors.white,
                           visualDensity: VisualDensity.compact),
                       child: Text(busy ? '...' : 'Quero'),
                     ),
