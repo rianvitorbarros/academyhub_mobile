@@ -405,6 +405,15 @@ class _PublicRegistrationScreenState extends State<PublicRegistrationScreen> {
   final Set<String> _selectedFoodRestrictions = {};
   PublicRegistrationSchoolContext? _schoolContext;
   List<PublicRegistrationClassModel> _classes = [];
+
+  /// Year chosen by the family: this year (start now) or next year
+  /// (secure the place and, when there is one, the advance-payment discount).
+  int? _academicYear;
+  final int _thisYear = DateTime.now().year;
+  int get _nextYear => _thisYear + 1;
+  final Map<int, List<PublicRegistrationClassModel>> _classesByYear = {};
+  bool _hasAvailable(int year) =>
+      (_classesByYear[year] ?? const []).any((c) => c.isAvailable);
   PublicRegistrationClassModel? _selectedClass;
   List<PublicEnrollmentOfferModel> _availableOffers = [];
   PublicEnrollmentOfferModel? _selectedEnrollmentOffer;
@@ -597,6 +606,7 @@ class _PublicRegistrationScreenState extends State<PublicRegistrationScreen> {
       'selectedNeighborhood': _selectedNeighborhood,
       'selectedEducationLevel': _selectedEducationLevel,
       'selectedClassId': _selectedClass?.id,
+      'academicYear': _academicYear,
       'selectedEnrollmentOfferId': _selectedEnrollmentOffer?.id,
       'studentGender': _studentGender,
       'relationship': _relationship,
@@ -676,6 +686,11 @@ class _PublicRegistrationScreenState extends State<PublicRegistrationScreen> {
   ) async {
     _isRestoringDraft = true;
     try {
+      final draftYear = _readDraftInt(data, 'academicYear');
+      if (draftYear != null && _classesByYear.containsKey(draftYear)) {
+        _academicYear = draftYear;
+        _classes = _classesByYear[draftYear]!;
+      }
       final selectedClassId = _readDraftString(data, 'selectedClassId');
       final selectedOfferId =
           _readDraftString(data, 'selectedEnrollmentOfferId');
@@ -870,12 +885,27 @@ class _PublicRegistrationScreenState extends State<PublicRegistrationScreen> {
     try {
       final results = await Future.wait<dynamic>([
         _service.fetchPublicContext(widget.schoolId),
-        _service.fetchPublicClasses(widget.schoolId),
+        _service.fetchPublicClasses(widget.schoolId, academicYear: _thisYear),
+        _service
+            .fetchPublicClasses(widget.schoolId, academicYear: _nextYear)
+            .catchError((_) => <PublicRegistrationClassModel>[]),
       ]);
       if (!mounted) return;
 
       final schoolContext = results[0] as PublicRegistrationSchoolContext;
-      final classes = results[1] as List<PublicRegistrationClassModel>;
+      _classesByYear[_thisYear] =
+          results[1] as List<PublicRegistrationClassModel>;
+      _classesByYear[_nextYear] =
+          results[2] as List<PublicRegistrationClassModel>;
+      // Only one year open: choose it for the family.
+      if (_academicYear == null) {
+        final thisOpen = _hasAvailable(_thisYear),
+            nextOpen = _hasAvailable(_nextYear);
+        if (thisOpen != nextOpen) {
+          _academicYear = nextOpen ? _nextYear : _thisYear;
+        }
+      }
+      final classes = _classesByYear[_academicYear] ?? const [];
       final availableLevels = _availableEducationLevels(classes);
       final currentLevelStillExists = availableLevels.contains(
         _selectedEducationLevel,
@@ -1137,6 +1167,16 @@ class _PublicRegistrationScreenState extends State<PublicRegistrationScreen> {
   Future<void> _fetchOffersForSelectedClass() async {
     final selectedClass = _selectedClass;
     if (selectedClass == null) return;
+    if (_academicYear == _nextYear) {
+      // Regime options are confirmed by the school for next year.
+      setState(() {
+        _availableOffers = [];
+        _offersError = null;
+        _selectedEnrollmentOffer = null;
+        _offersLoadedForClassId = selectedClass.id;
+      });
+      return;
+    }
 
     setState(() {
       _isLoadingOffers = true;
@@ -1201,7 +1241,9 @@ class _PublicRegistrationScreenState extends State<PublicRegistrationScreen> {
     });
     if (success == true) {
       await _clearDraft();
-      if (_earlyOfferAccepted) await _registerEarlyOfferAdhesion();
+      if (_earlyOfferAccepted && _earlyOfferApplies) {
+        await _registerEarlyOfferAdhesion();
+      }
     }
   }
 
@@ -1227,6 +1269,7 @@ class _PublicRegistrationScreenState extends State<PublicRegistrationScreen> {
       'origin': 'mobile_public_enrollment',
       'onlyMinors': widget.onlyMinors,
       'selectedClassId': _selectedClass!.id,
+      if (_academicYear != null) 'academicYearTo': _academicYear,
       'requestedRegime': selectedOffer?.type ?? 'regular',
       'studentData': {
         'fullName': _studentNameController.text.trim(),
@@ -1887,6 +1930,26 @@ class _PublicRegistrationScreenState extends State<PublicRegistrationScreen> {
     _offersLoadedForClassId = null;
     _isLoadingOffers = false;
   }
+
+  void _selectAcademicYear(int year) {
+    if (_academicYear == year) return;
+    setState(() {
+      _academicYear = year;
+      _classes = _classesByYear[year] ?? const [];
+      final levels = _availableEducationLevels(_classes);
+      _selectedEducationLevel = levels.length == 1 ? levels.first : null;
+      _selectedClass = null;
+      _clearSelectedOffer();
+      _offerQuote = null;
+      _offerQuoteClassId = null;
+      if (_earlyOffer?.academicYear != year) _earlyOfferAccepted = false;
+    });
+    _scheduleDraftSave();
+  }
+
+  /// The advance-payment offer only applies to the year it belongs to.
+  bool get _earlyOfferApplies =>
+      _earlyOffer != null && _earlyOffer!.academicYear == _academicYear;
 
   void _selectEducationLevel(String level) {
     setState(() {
@@ -3259,6 +3322,155 @@ class _PublicRegistrationScreenState extends State<PublicRegistrationScreen> {
     );
   }
 
+  Widget _buildYearChooser() {
+    final colors = _flowColors;
+    final offer = _earlyOffer;
+    Widget option({
+      required int year,
+      required String title,
+      required String subtitle,
+      required IconData icon,
+      String? badge,
+    }) {
+      final available = _hasAvailable(year);
+      final selected = _academicYear == year;
+      return Opacity(
+        opacity: available ? 1 : 0.6,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16.r),
+          onTap: available ? () => _selectAcademicYear(year) : null,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 180),
+            padding: EdgeInsets.all(14.w),
+            decoration: BoxDecoration(
+              color: selected
+                  ? colors.selectedSurface
+                  : (available ? colors.surface : colors.disabledSurface),
+              borderRadius: BorderRadius.circular(16.r),
+              border: Border.all(
+                color: selected ? colors.selectedBorder : colors.border,
+                width: selected ? 1.8 : 1,
+              ),
+            ),
+            child: Row(children: [
+              Container(
+                width: 44.w,
+                height: 44.w,
+                decoration: BoxDecoration(
+                  color: selected ? colors.brand : colors.iconSurface,
+                  borderRadius: BorderRadius.circular(12.r),
+                ),
+                child: Icon(icon,
+                    color: selected ? Colors.white : colors.brand, size: 22.sp),
+              ),
+              SizedBox(width: 12.w),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(children: [
+                      Text(
+                        '$year',
+                        style: GoogleFonts.inter(
+                          fontSize: 18.sp,
+                          fontWeight: FontWeight.w900,
+                          color:
+                              selected ? colors.onSelected : colors.textPrimary,
+                        ),
+                      ),
+                      SizedBox(width: 8.w),
+                      Flexible(
+                        child: Text(
+                          title,
+                          overflow: TextOverflow.ellipsis,
+                          style: GoogleFonts.inter(
+                            fontSize: 13.sp,
+                            fontWeight: FontWeight.w700,
+                            color: colors.textSecondary,
+                          ),
+                        ),
+                      ),
+                    ]),
+                    SizedBox(height: 3.h),
+                    Text(
+                      available ? subtitle : 'Vagas abrem em breve.',
+                      style: GoogleFonts.inter(
+                        fontSize: 12.5.sp,
+                        height: 1.35,
+                        color: colors.textMuted,
+                      ),
+                    ),
+                    if (badge != null && available) ...[
+                      SizedBox(height: 8.h),
+                      Container(
+                        padding: EdgeInsets.symmetric(
+                            horizontal: 9.w, vertical: 4.h),
+                        decoration: BoxDecoration(
+                          color: colors.brand,
+                          borderRadius: BorderRadius.circular(20.r),
+                        ),
+                        child: Row(mainAxisSize: MainAxisSize.min, children: [
+                          Icon(Icons.card_giftcard_rounded,
+                              size: 13.sp, color: Colors.white),
+                          SizedBox(width: 5.w),
+                          Text(
+                            badge,
+                            style: GoogleFonts.inter(
+                              fontSize: 11.sp,
+                              fontWeight: FontWeight.w800,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ]),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              Icon(
+                selected
+                    ? Icons.radio_button_checked_rounded
+                    : Icons.radio_button_off_rounded,
+                color: selected ? colors.brand : colors.borderStrong,
+              ),
+            ]),
+          ),
+        ),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Para qual ano letivo?',
+          style: GoogleFonts.inter(
+            fontSize: 16.sp,
+            fontWeight: FontWeight.w800,
+            color: colors.textPrimary,
+          ),
+        ),
+        SizedBox(height: 10.h),
+        option(
+          year: _thisYear,
+          title: 'Ainda este ano',
+          subtitle: 'O aluno começa agora, nas turmas atuais.',
+          icon: Icons.play_circle_outline_rounded,
+        ),
+        SizedBox(height: 10.h),
+        option(
+          year: _nextYear,
+          title: 'Próximo ano letivo',
+          subtitle: 'Garanta desde já a vaga para $_nextYear.',
+          icon: Icons.event_available_rounded,
+          badge: offer != null && offer.academicYear == _nextYear
+              ? '${offer.shortDiscount} em ${offer.referenceLabel.split('/').first}'
+              : null,
+        ),
+      ],
+    );
+  }
+
   Widget _buildClassStep() {
     final colors = _flowColors;
     final visibleClasses = _visibleClasses;
@@ -3267,11 +3479,16 @@ class _PublicRegistrationScreenState extends State<PublicRegistrationScreen> {
       key: const ValueKey('class'),
       children: [
         const _StepIntro(
-          title: 'Escolha a turma desejada.',
-          subtitle: 'Selecione uma opção disponível para esta solicitação.',
+          title: 'Escolha o ano e a turma.',
+          subtitle:
+              'Matricule para este ano ou garanta desde já a vaga no próximo ano letivo.',
           icon: Icons.groups_rounded,
         ),
         SizedBox(height: 20.h),
+        if (!_isLoadingClasses && _classesError == null) ...[
+          _buildYearChooser(),
+          SizedBox(height: 22.h),
+        ],
         if (_isLoadingClasses)
           const Center(child: CircularProgressIndicator())
         else if (_classesError != null)
@@ -3282,6 +3499,8 @@ class _PublicRegistrationScreenState extends State<PublicRegistrationScreen> {
             actionLabel: 'Tentar novamente',
             onAction: _loadInitialData,
           )
+        else if (_academicYear == null)
+          const SizedBox.shrink()
         else if (_classes.isEmpty)
           const _InfoBox(
             icon: Icons.info_outline_rounded,
@@ -3572,7 +3791,7 @@ class _PublicRegistrationScreenState extends State<PublicRegistrationScreen> {
           icon: Icons.fact_check_rounded,
         ),
         SizedBox(height: 22.h),
-        if (_earlyOffer != null) ...[
+        if (_earlyOfferApplies) ...[
           _buildEarlyOfferReviewCard(_earlyOffer!),
           SizedBox(height: 18.h),
         ],
@@ -3672,6 +3891,7 @@ class _PublicRegistrationScreenState extends State<PublicRegistrationScreen> {
           _ReviewSection(
             title: 'Turma principal',
             items: {
+              if (_academicYear != null) 'Ano letivo': '$_academicYear',
               'Turma': selectedClass.name,
               'Nível': selectedClass.educationLevel ?? 'Não informado',
               'Turno': selectedClass.shift ?? 'Não informado',
@@ -3986,7 +4206,7 @@ class _PublicRegistrationScreenState extends State<PublicRegistrationScreen> {
               color: colors.textMuted,
             ),
           ),
-          if (_earlyOffer != null) ...[
+          if (_earlyOfferApplies) ...[
             SizedBox(height: 18.h),
             _buildEarlyOfferSuccessCard(_earlyOffer!),
           ],

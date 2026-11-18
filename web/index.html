@@ -47,6 +47,31 @@
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="favicon.png"/>
 
+  <!-- Start the two big downloads as early as possible. -->
+  <link rel="preload" href="main.dart.js" as="script">
+  <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <style>
+    /* Instant loading screen: shown by the HTML itself while the app
+       (about 3–4 MB) downloads, so slow connections never see a blank page. */
+    html, body { margin: 0; background: #F6F8FA; }
+    #ah-splash { position: fixed; inset: 0; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 14px; color: #0F172A;
+      background: #F6F8FA; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      transition: opacity .35s ease; z-index: 9999; }
+    #ah-splash .ah-name { font-size: 20px; font-weight: 800; letter-spacing: .2px; }
+    #ah-splash .ah-bar { width: 160px; height: 4px; border-radius: 4px; background: #E2E8F0; overflow: hidden; }
+    #ah-splash .ah-bar::after { content: ""; display: block; width: 40%; height: 100%; border-radius: 4px;
+      background: #00A859; animation: ah-load 1.2s ease-in-out infinite; }
+    #ah-splash .ah-msg { font-size: 13px; color: #64748B; min-height: 18px; }
+    @keyframes ah-load { 0% { transform: translateX(-100%); } 100% { transform: translateX(250%); } }
+    @media (prefers-color-scheme: dark) {
+      html, body, #ah-splash { background: #0B1220; }
+      #ah-splash { color: #F8FAFC; }
+      #ah-splash .ah-bar { background: #334155; }
+      #ah-splash .ah-msg { color: #94A3B8; }
+    }
+  </style>
   <title>Academy Hub</title>
   <link rel="manifest" href="manifest.json">
   <style>
@@ -125,7 +150,19 @@
       }
 
       window.addEventListener('DOMContentLoaded', patchAllVideos);
-      new MutationObserver(patchAllVideos).observe(document.documentElement, {
+      new MutationObserver(function (mutations) {
+        for (var i = 0; i < mutations.length; i++) {
+          var added = mutations[i].addedNodes;
+          for (var j = 0; j < added.length; j++) {
+            var node = added[j];
+            if (node.nodeName === 'VIDEO' ||
+                (node.querySelector && node.querySelector('video'))) {
+              patchAllVideos();
+              return;
+            }
+          }
+        }
+      }).observe(document.documentElement, {
         childList: true,
         subtree: true
       });
@@ -143,6 +180,32 @@
   </script>
 </head>
 <body>
+  <div id="ah-splash" role="status" aria-live="polite">
+    <svg width="64" height="55" aria-hidden="true" viewBox="0 0 42 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path fill-rule="evenodd" clip-rule="evenodd" d="M12.0444 35.8788C16.234 35.8788 19.7779 33.1044 20.9507 29.2868C20.6829 28.415 20.5387 27.4888 20.5387 26.5287C20.5387 25.5687 20.6829 24.6425 20.9507 23.7707C19.7779 19.9531 16.234 17.1787 12.0444 17.1787C6.89804 17.1787 2.72607 21.3649 2.72607 26.5287C2.72607 31.6926 6.89804 35.8788 12.0444 35.8788ZM12.0761 31.7901C14.9819 31.7901 17.3058 29.4345 17.3058 26.5287C17.3058 23.623 14.9502 21.2674 12.0444 21.2674C9.13864 21.2674 6.81473 23.623 6.81473 26.5287C6.81473 29.4345 9.17033 31.7901 12.0761 31.7901Z" fill="currentColor"/>
+<path fill-rule="evenodd" clip-rule="evenodd" d="M29.857 35.8788C35.0034 35.8788 39.1754 31.6926 39.1754 26.5287C39.1754 21.3649 35.0034 17.1787 29.857 17.1787C25.6674 17.1787 22.1236 19.9531 20.9507 23.7707C21.2186 24.6425 21.3628 25.5687 21.3628 26.5287C21.3628 27.4888 21.2186 28.415 20.9507 29.2868C22.1236 33.1044 25.6674 35.8788 29.857 35.8788ZM29.7619 31.7901C32.6677 31.7901 35.0233 29.4345 35.0233 26.5287C35.0233 23.623 32.6677 21.2674 29.7619 21.2674C26.8562 21.2674 24.5006 23.623 24.5006 26.5287C24.5006 29.4345 26.8562 31.7901 29.7619 31.7901Z" fill="currentColor"/>
+<path d="M20.5387 26.5287C20.5387 27.4888 20.6829 28.415 20.9507 29.2868C21.2186 28.415 21.3628 27.4888 21.3628 26.5287C21.3628 25.5687 21.2186 24.6425 20.9507 23.7707C20.6829 24.6425 20.5387 25.5687 20.5387 26.5287Z" fill="currentColor"/>
+<path d="M8.01885 10.2058V16.1962C8.01885 16.1962 11.3925 14.8967 15.0463 15.9109C18.7001 16.9251 20.9187 19.9362 20.9187 19.9362C20.9187 19.9362 23.2185 16.8935 26.7912 15.9109C30.3638 14.9284 33.8186 16.1962 33.8186 16.1962V10.2058L39.3019 8.3041V13.6923C39.3019 13.6923 38.6679 13.9775 38.6679 14.7382C38.6679 15.4989 39.2385 15.8475 39.2385 15.8475V15.9109L38.351 19.9679H41.5205L40.633 15.9109V15.8475C40.633 15.8475 41.2669 15.5623 41.2669 14.7699C41.2669 13.9775 40.538 13.6923 40.538 13.6923V7.79698L41.8375 7.41664V7.35325L20.9187 0L0 7.35325V7.41664L8.01885 10.2058Z" fill="currentColor"/>
+</svg>
+    <div class="ah-name">Academy Hub</div>
+    <div class="ah-bar"></div>
+    <div class="ah-msg" id="ah-splash-msg">Carregando…</div>
+  </div>
+  <script>
+    (function () {
+      var splash = document.getElementById('ah-splash');
+      var msg = document.getElementById('ah-splash-msg');
+      var slow = setTimeout(function () {
+        if (msg) msg.textContent = 'Conexão lenta, quase lá…';
+      }, 7000);
+      window.addEventListener('flutter-first-frame', function () {
+        clearTimeout(slow);
+        if (!splash) return;
+        splash.style.opacity = '0';
+        setTimeout(function () { splash.remove(); }, 400);
+      });
+    })();
+  </script>
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>
