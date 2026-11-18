@@ -8,7 +8,11 @@
 
 import 'package:flutter/material.dart';
 
-class PhosphorIcons{
+// Lets the icon font tree-shaker keep only the icons the app actually uses
+// (same annotation as Flutter's Icons). Without it every one of the ~5000
+// constants counts as used and the whole 1 MB font ships to the browser.
+@staticIconProvider
+class PhosphorIcons {
 
 static const IconData activity_thin = IconData(0xea02, fontFamily: 'Phosphor', fontPackage: 'flutter_phosphor_icons');
 
